@@ -16,13 +16,17 @@ const DEFAULT_FILTERS = {
   sort: 'score',
 }
 
+function normalise(s) {
+  return (s || '').toLowerCase().trim()
+}
+
 function applyFilters(deals, filters) {
   return deals
     .filter(d => {
       if (d.scoring.score < filters.minScore) return false
-      if (filters.vertical && d.enrichment?.vertical !== filters.vertical) return false
-      if (filters.stage && d.enrichment?.stage !== filters.stage) return false
-      if (filters.signal && !(d.enrichment?.notableSignals || []).includes(filters.signal)) return false
+      if (filters.vertical && normalise(d.enrichment?.vertical) !== normalise(filters.vertical)) return false
+      if (filters.stage && normalise(d.enrichment?.stage) !== normalise(filters.stage)) return false
+      if (filters.signal && !(d.enrichment?.notableSignals || []).some(s => normalise(s) === normalise(filters.signal))) return false
       return true
     })
     .sort((a, b) => {
