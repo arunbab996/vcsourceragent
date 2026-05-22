@@ -1,6 +1,6 @@
-import { ProductHuntLogo, GitHubLogo, YCLogo } from './Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo } from './Logos'
 
-const LOGO = { producthunt: ProductHuntLogo, github: GitHubLogo, yc: YCLogo }
+const LOGO = { producthunt: ProductHuntLogo, github: GitHubLogo, yc: YCLogo, showhn: ShowHNLogo }
 
 export default function Sidebar({ sources, selectedSources, onToggleSource, filters, onFiltersChange, deals, isRunning }) {
   const verticals = [...new Set(deals.map(d => d.enrichment?.vertical).filter(Boolean))].sort()
