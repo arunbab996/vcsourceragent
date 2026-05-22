@@ -26,7 +26,7 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
                   !src.requires
                     ? 'text-[#333] cursor-not-allowed'
                     : active
-                    ? 'bg-white/[0.05] text-[#E2E2E2]'
+                    ? 'bg-white/[0.04] text-[#E2E2E2]'
                     : 'text-[#737373] hover:text-[#E2E2E2] hover:bg-white/[0.03]'
                 }`}
               >
@@ -34,7 +34,7 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
                   <Logo size={14} />
                 </span>
                 <span>{src.label}</span>
-                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0" />}
+                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
                 {!src.requires && <span className="ml-auto text-[10px] text-[#333]">no key</span>}
               </button>
             )
@@ -64,7 +64,7 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
                   onClick={() => onFiltersChange({ ...filters, minScore: n })}
                   className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                     filters.minScore === n
-                      ? 'bg-violet-600 text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-[#1C1C1C] text-[#737373] hover:text-[#E2E2E2] border border-white/[0.06]'
                   }`}
                 >
@@ -137,7 +137,7 @@ function Select({ value, onChange, children }) {
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full bg-[#1A1A1A] border border-white/[0.06] text-[#737373] text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-violet-600/50 focus:text-[#E2E2E2] transition-colors"
+      className="w-full bg-[#1A1A1A] border border-white/[0.06] text-[#737373] text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-blue-600/50 focus:text-[#E2E2E2] transition-colors"
     >
       {children}
     </select>

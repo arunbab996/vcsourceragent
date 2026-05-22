@@ -2,9 +2,10 @@ import { useState, useCallback } from 'react'
 import { fetchRecentLaunches } from './lib/productHunt'
 import { fetchRecentGithubRepos } from './lib/github'
 import { fetchRecentYCCompanies } from './lib/yc'
+import { fetchShowHNPosts } from './lib/showhn'
 import { runAgentPipeline } from './lib/agent'
 import { saveDeal, isSupabaseEnabled } from './lib/supabase'
-import { ProductHuntLogo, GitHubLogo, YCLogo } from './components/Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, DiscoveryScoutLogo } from './components/Logos'
 import DealCard from './components/DealCard'
 import AgentStatusBar from './components/AgentStatusBar'
 import Sidebar from './components/Sidebar'
@@ -18,6 +19,7 @@ const SOURCES = [
   { id: 'producthunt', label: 'Product Hunt', envKey: 'VITE_PH_API_KEY',   requires: !!PH_KEY },
   { id: 'github',      label: 'GitHub',        envKey: 'VITE_GITHUB_TOKEN', requires: !!GH_KEY },
   { id: 'yc',          label: 'YC',            envKey: null,                requires: true },
+  { id: 'showhn',      label: 'Show HN',       envKey: null,                requires: true },
 ]
 
 const DEFAULT_FILTERS = { minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'score' }
@@ -84,14 +86,14 @@ export default function App() {
       if (selectedSources.includes('producthunt') && PH_KEY) {
         setAgentState({ status: 'discover', message: 'Fetching Product Hunt launches…', dealsFound: 0, dealsProcessed: 0 })
         const items = await fetchRecentLaunches(PH_KEY, 48, 30)
-        setAgentState(s => ({ ...s, message: `${items.length} PH launches — filtering…`, dealsFound: items.length }))
+        setAgentState(s => ({ ...s, message: `${items.length} PH launches — filtering…` }))
         await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('producthunt'))
       }
 
       if (selectedSources.includes('github') && GH_KEY) {
         setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching GitHub repos…' }))
         const items = await fetchRecentGithubRepos(GH_KEY, 48, 30)
-        setAgentState(s => ({ ...s, message: `${items.length} GitHub repos — filtering…` }))
+        setAgentState(s => ({ ...s, message: `${items.length} repos — filtering…` }))
         await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('github'))
       }
 
@@ -100,6 +102,13 @@ export default function App() {
         const items = await fetchRecentYCCompanies(6)
         setAgentState(s => ({ ...s, message: `${items.length} YC companies — filtering…` }))
         await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('yc'))
+      }
+
+      if (selectedSources.includes('showhn')) {
+        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching Show HN posts…' }))
+        const items = await fetchShowHNPosts(3)
+        setAgentState(s => ({ ...s, message: `${items.length} Show HN posts — filtering…` }))
+        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('showhn'))
       }
 
       setAgentState(s => ({
@@ -124,27 +133,32 @@ export default function App() {
       {/* Header */}
       <header className="h-11 border-b border-white/[0.06] bg-[#0F0F0F] sticky top-0 z-40 flex-shrink-0">
         <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-[#E2E2E2]">Deal Sourcer</span>
-            <span className="text-[#2A2A2A]">/</span>
-            <span className="text-[12px] text-[#404040]">Pipeline</span>
+
+          {/* Wordmark */}
+          <div className="flex items-center gap-2.5">
+            <DiscoveryScoutLogo size={22} />
+            <div className="flex items-baseline gap-1">
+              <span className="text-[13px] font-semibold text-white tracking-tight">discovery</span>
+              <span className="text-[13px] text-[#333]">/</span>
+              <span className="text-[13px] font-medium text-[#666]">scout</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
             {isSupabaseEnabled() && savedCount > 0 && (
-              <span className="text-[11px] text-emerald-700">{savedCount} saved</span>
+              <span className="text-[11px] text-[#2A6A3A]">{savedCount} saved</span>
             )}
             <button
               onClick={handleRun}
               disabled={isRunning || !OPENAI_KEY}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-all ${
                 isRunning
-                  ? 'bg-[#1C1C1C] text-[#404040] cursor-not-allowed border border-white/[0.04]'
-                  : 'bg-violet-600 hover:bg-violet-500 text-white'
+                  ? 'bg-[#1A1A1A] text-[#444] cursor-not-allowed border border-white/[0.04]'
+                  : 'bg-[#1060E8] hover:bg-[#1555D4] text-white'
               }`}
             >
               {isRunning
-                ? <><span className="w-3 h-3 border border-[#555] border-t-[#888] rounded-full animate-spin" /> Running</>
+                ? <><span className="w-3 h-3 border border-[#444] border-t-[#777] rounded-full animate-spin" /> Running</>
                 : 'Run pipeline'
               }
             </button>
@@ -172,32 +186,35 @@ export default function App() {
           <AgentStatusBar agentState={agentState} progress={progress} />
 
           {error && (
-            <div className="border border-red-900/40 bg-red-950/20 rounded px-3 py-2 text-[12px] text-red-400 mb-4">
+            <div className="border border-red-900/30 bg-red-950/10 rounded px-3 py-2 text-[12px] text-[#A05050] mb-4">
               {error}
             </div>
           )}
 
           {/* Empty */}
           {!deals.length && !isRunning && agentState.status === 'idle' && (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-              <p className="text-[13px] text-[#404040] mb-1">No deals yet</p>
-              <p className="text-[12px] text-[#333] max-w-xs">
-                {OPENAI_KEY ? 'Select sources and run the pipeline.' : 'Add API keys to Vercel env vars and redeploy.'}
-              </p>
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center gap-2">
+              <span className="text-[13px] text-[#3A3A3A]">No deals yet</span>
+              <span className="text-[12px] text-[#2A2A2A] max-w-xs">
+                {OPENAI_KEY ? 'Select sources in the sidebar and run the pipeline.' : 'Add API keys to Vercel env vars and redeploy.'}
+              </span>
             </div>
           )}
 
           {/* Skeleton */}
           {isRunning && !deals.length && (
             <div className="border border-white/[0.05] rounded-md overflow-hidden">
-              {[1,2,3,4].map(i => (
+              {[1,2,3,4,5].map(i => (
                 <div key={i} className="flex items-start gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 animate-pulse">
-                  <div className="w-6 h-4 bg-[#1C1C1C] rounded flex-shrink-0" />
-                  <div className="w-8 h-8 bg-[#1C1C1C] rounded flex-shrink-0" />
+                  <div className="w-6 h-4 bg-[#1C1C1C] rounded flex-shrink-0 mt-0.5" />
+                  <div className="w-8 h-8 bg-[#1C1C1C] rounded-md flex-shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-[#1C1C1C] rounded w-40" />
-                    <div className="h-2.5 bg-[#181818] rounded w-64" />
-                    <div className="h-2 bg-[#161616] rounded w-48" />
+                    <div className="flex gap-2">
+                      <div className="h-3 bg-[#1C1C1C] rounded w-32" />
+                      <div className="h-3 bg-[#181818] rounded w-16" />
+                    </div>
+                    <div className="h-2.5 bg-[#181818] rounded w-56" />
+                    <div className="h-2 bg-[#161616] rounded w-40" />
                   </div>
                 </div>
               ))}
@@ -210,15 +227,15 @@ export default function App() {
               <StatsBar deals={deals} isRunning={isRunning} />
 
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] text-[#404040]">
+                <span className="text-[11px] text-[#3A3A3A]">
                   {filtered.length} of {deals.length} deals
-                  {isRunning && <span className="text-violet-700 ml-2">· sourcing</span>}
+                  {isRunning && <span className="text-blue-800 ml-2">· sourcing</span>}
                 </span>
               </div>
 
-              <div className="border border-white/[0.05] rounded-md overflow-hidden bg-[#111]">
+              <div className="border border-white/[0.05] rounded-md overflow-hidden">
                 {filtered.length === 0
-                  ? <p className="text-[12px] text-[#404040] text-center py-12">No deals match the current filters.</p>
+                  ? <p className="text-[12px] text-[#3A3A3A] text-center py-16">No deals match the current filters.</p>
                   : filtered.map(deal => (
                       <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
                     ))

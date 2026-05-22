@@ -15,7 +15,7 @@ export default function AgentStatusBar({ agentState, progress }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {!done && !errored && (
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse flex-shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
           )}
           {done && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
           {errored && <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
@@ -36,7 +36,7 @@ export default function AgentStatusBar({ agentState, progress }) {
           return (
             <div key={step} className="flex items-center gap-1 flex-1">
               <div className={`h-0.5 flex-1 rounded-full transition-all duration-500 ${
-                isPast || done ? 'bg-violet-600' : isCurrent ? 'bg-violet-800' : 'bg-[#222]'
+                isPast || done ? 'bg-blue-600' : isCurrent ? 'bg-blue-900' : 'bg-[#222]'
               }`} />
               {i === STEPS.length - 1 && null}
             </div>
@@ -50,7 +50,7 @@ export default function AgentStatusBar({ agentState, progress }) {
           const isCurrent = i === currentIdx
           return (
             <span key={step} className={`text-[10px] ${
-              isPast || done ? 'text-violet-400' : isCurrent ? 'text-[#737373]' : 'text-[#333]'
+              isPast || done ? 'text-blue-400' : isCurrent ? 'text-[#737373]' : 'text-[#333]'
             }`}>
               {STEP_LABEL[step]}
             </span>
@@ -61,7 +61,7 @@ export default function AgentStatusBar({ agentState, progress }) {
       {progress && progress.total > 0 && (
         <div className="mt-2 h-px bg-[#1C1C1C] rounded overflow-hidden">
           <div
-            className="h-full bg-violet-600/60 rounded transition-all duration-300"
+            className="h-full bg-blue-600/60 rounded transition-all duration-300"
             style={{ width: `${(progress.current / progress.total) * 100}%` }}
           />
         </div>
