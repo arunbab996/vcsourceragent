@@ -115,8 +115,6 @@ Respond with JSON only:
 
 // ─── Step 3: Enrich ────────────────────────────────────────────────────────────
 export async function enrichDeal(client, launch, research) {
-  const makerNames = launch.makers.map(m => m.name)
-
   const prompt = `You are a VC analyst creating a structured deal profile for an early-stage startup.
 
 Launch data:
@@ -127,18 +125,14 @@ Topics: ${launch.topics.join(', ')}
 Votes: ${launch.votes}
 URL: ${launch.url}
 
-Confirmed maker names from Product Hunt (use these exactly for founderNames):
-${makerNames.join(', ')}
-
 Founder research:
 ${JSON.stringify(research, null, 2)}
 
 Instructions:
-- "founderNames" MUST be the maker names listed above — do not replace any with "Unknown"
 - "stage": one of exactly "Pre-seed", "Seed", "Series A", "Unknown"
 - "vertical": most specific category (e.g. "AI DevTools", "B2B SaaS", "FinTech", "HealthTech", "Consumer App", "Infrastructure", "Marketplace", "Productivity")
 - "notableSignals": flat unique list using only these exact values: "Solo Founder", "Repeat Founder", "Ex-FAANG", "YC", "Academic", "Operator", "Early Traction"
-  - Add "Solo Founder" if there is exactly 1 maker
+  - Add "Solo Founder" if there is exactly 1 founder in the research
   - Add "Early Traction" if votes > 200 or description mentions customers/revenue
 
 Respond with JSON only:
@@ -148,7 +142,6 @@ Respond with JSON only:
   "vertical": "string",
   "stage": "Pre-seed" | "Seed" | "Series A" | "Unknown",
   "location": "string or null",
-  "founderNames": ["use the exact maker names from above"],
   "notableSignals": ["array using only the allowed values listed above"],
   "tractionSignals": "string describing traction evidence or null",
   "enrichmentNotes": "2-3 sentences of analyst color on why this is interesting"
@@ -163,12 +156,9 @@ Respond with JSON only:
 
   const result = JSON.parse(res.choices[0].message.content)
 
-  // Safety net: if GPT still returned empty/unknown names, use PH maker names directly
-  const allUnknown = !result.founderNames?.length ||
-    result.founderNames.every(n => !n || n.toLowerCase() === 'unknown')
-  if (allUnknown) {
-    result.founderNames = makerNames
-  }
+  // Always use PH API maker names directly — never trust GPT for this
+  result.founderNames = launch.makers.map(m => m.name).filter(Boolean)
+  if (!result.founderNames.length) result.founderNames = ['Unknown']
 
   return result
 }
