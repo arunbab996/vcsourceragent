@@ -46,6 +46,14 @@ export default function App() {
 
   const handleRun = useCallback(async () => {
     if (isRunning) return
+
+    if (!OPENAI_KEY || !PH_KEY) {
+      setError(
+        'Missing env vars. Make sure VITE_OPENAI_API_KEY and VITE_PH_API_KEY are set in Vercel → Project Settings → Environment Variables, then redeploy.'
+      )
+      return
+    }
+
     setIsRunning(true)
     setDeals([])
     setError(null)

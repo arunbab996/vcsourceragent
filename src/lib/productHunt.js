@@ -56,6 +56,11 @@ export async function fetchRecentLaunches(apiKey, hoursBack = 48, limit = 30) {
 
   if (!response.ok) {
     const text = await response.text()
+    if (response.status === 401) {
+      throw new Error(
+        'Product Hunt API: invalid token (401). Check that VITE_PH_API_KEY in Vercel matches the Developer Token from producthunt.com/v2/oauth/applications — not the Client ID or Secret.'
+      )
+    }
     throw new Error(`Product Hunt API error ${response.status}: ${text}`)
   }
 
