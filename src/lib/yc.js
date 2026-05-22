@@ -1,30 +1,40 @@
-const YC_API = 'https://yc-oss.github.io/api/companies/all.json'
+// YC companies post "Launch HN: CompanyName – tagline" on Hacker News
+// at Demo Day. This is the most reliable public source for latest-batch data.
+const HN_SEARCH = 'https://hn.algolia.com/api/v1/search'
 
-// W26 = Winter 2026, S25 = Summer 2025, etc.
-const RECENT_BATCHES = new Set(['W26', 'S25', 'W25', 'S24'])
+export async function fetchRecentYCCompanies(monthsBack = 6) {
+  const since = Math.floor((Date.now() - monthsBack * 30 * 24 * 60 * 60 * 1000) / 1000)
 
-export async function fetchRecentYCCompanies(batches = RECENT_BATCHES) {
-  const res = await fetch(YC_API)
-  if (!res.ok) throw new Error(`YC API error ${res.status}`)
+  const res = await fetch(
+    `${HN_SEARCH}?query=Launch+HN&tags=story&numericFilters=created_at_i>${since}&hitsPerPage=80`
+  )
+  if (!res.ok) throw new Error(`HN API error ${res.status}`)
 
-  const companies = await res.json()
+  const data = await res.json()
 
-  return companies
-    .filter(c => batches.has(c.batch) && c.status !== 'Inactive')
-    .map(c => ({
-      id: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-      name: c.name,
-      tagline: c.one_liner || '',
-      description: c.long_description || c.one_liner || '',
-      url: `https://www.ycombinator.com/companies/${c.slug}`,
-      website: c.website || '',
-      votes: 0,
-      comments: 0,
-      createdAt: c.year_founded ? `${c.year_founded}-01-01` : null,
-      thumbnail: c.small_logo_thumb_url || c.logo_url || null,
-      topics: c.tags || [],
-      batch: c.batch,
-      location: c.location || null,
-      makers: [],
-    }))
+  return data.hits
+    .filter(h => h.title?.startsWith('Launch HN:'))
+    .map(h => {
+      const withoutPrefix = h.title.replace(/^Launch HN:\s*/, '')
+      const sep = withoutPrefix.search(/\s[–—|-]\s/)
+      const name    = sep > 0 ? withoutPrefix.slice(0, sep).trim() : withoutPrefix.trim()
+      const tagline = sep > 0 ? withoutPrefix.slice(sep).replace(/^[\s–—|-]+/, '').trim() : ''
+
+      return {
+        id: String(h.objectID),
+        name,
+        tagline,
+        description: tagline,
+        url: `https://news.ycombinator.com/item?id=${h.objectID}`,
+        website: h.url || '',
+        votes: h.points || 0,
+        comments: h.num_comments || 0,
+        createdAt: h.created_at,
+        thumbnail: null,
+        topics: [],
+        makers: h.author
+          ? [{ id: h.author, name: h.author, username: h.author, headline: 'YC Founder', twitter: '', website: h.url || '', avatar: null }]
+          : [],
+      }
+    })
 }

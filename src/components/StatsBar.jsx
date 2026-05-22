@@ -1,34 +1,45 @@
 export default function StatsBar({ deals, isRunning }) {
-  if (deals.length === 0) return null
+  if (!deals.length) return null
 
-  const avg = (deals.reduce((s, d) => s + d.scoring.score, 0) / deals.length).toFixed(1)
+  const avg           = (deals.reduce((s, d) => s + d.scoring.score, 0) / deals.length).toFixed(1)
   const highConviction = deals.filter(d => d.scoring.score >= 8).length
-  const passToPartners = deals.filter(d => d.scoring.passToPartners).length
-  const bySource = deals.reduce((acc, d) => {
-    acc[d.source] = (acc[d.source] || 0) + 1
-    return acc
-  }, {})
-
-  const SOURCE_ICONS = { producthunt: '🔶', github: '🐙', yc: '🏆' }
+  const partners       = deals.filter(d => d.scoring.passToPartners).length
+  const bySource       = deals.reduce((a, d) => { a[d.source] = (a[d.source] || 0) + 1; return a }, {})
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <StatCard label="Total Deals" value={deals.length} sub={isRunning ? 'processing…' : Object.entries(bySource).map(([s, n]) => `${SOURCE_ICONS[s] || s} ${n}`).join('  ')} />
-      <StatCard label="Avg Score" value={avg} sub="out of 10" accent />
-      <StatCard label="High Conviction" value={highConviction} sub="scored 8+" color="text-emerald-400" />
-      <StatCard label="Pass to Partners" value={passToPartners} sub="recommended" color="text-violet-400" />
+    <div className="flex items-center gap-6 px-1 mb-4 border-b border-white/[0.04] pb-3">
+      <Stat label="Total" value={deals.length} sub={isRunning ? 'loading' : null} />
+      <Divider />
+      <Stat label="Avg score" value={avg} />
+      <Divider />
+      <Stat label="Score 8+" value={highConviction} color="#22C55E" />
+      <Divider />
+      <Stat label="Pass to partners" value={partners} color="#A78BFA" />
+      <Divider />
+      <div className="flex items-center gap-3 ml-auto">
+        {Object.entries(bySource).map(([src, n]) => (
+          <span key={src} className="text-[11px] text-[#555]">
+            <span className="text-[#737373]">{n}</span> {src === 'producthunt' ? 'PH' : src === 'github' ? 'GH' : 'YC'}
+          </span>
+        ))}
+        {isRunning && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />}
+      </div>
     </div>
   )
 }
 
-function StatCard({ label, value, sub, color, accent }) {
+function Stat({ label, value, color, sub }) {
   return (
-    <div className="bg-[#111118] border border-slate-800/60 rounded-xl px-4 py-3">
-      <p className="text-xs text-slate-500 mb-1">{label}</p>
-      <p className={`text-2xl font-bold tracking-tight ${color || (accent ? 'text-white' : 'text-white')}`}>
+    <div>
+      <span className="text-[11px] text-[#555] block">{label}</span>
+      <span className="text-[15px] font-semibold tabular" style={color ? { color } : {}}>
         {value}
-      </p>
-      {sub && <p className="text-xs text-slate-600 mt-0.5 truncate">{sub}</p>}
+        {sub && <span className="text-[10px] text-[#444] ml-1 font-normal">{sub}</span>}
+      </span>
     </div>
   )
+}
+
+function Divider() {
+  return <div className="h-6 w-px bg-white/[0.05]" />
 }
