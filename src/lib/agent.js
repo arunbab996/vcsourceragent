@@ -58,40 +58,45 @@ Respond with JSON only:
 
 // ─── Step 2: Research ──────────────────────────────────────────────────────────
 export async function researchFounder(client, launch) {
-  const makerList = launch.makers
-    .map(m => [
-      `Name: ${m.name}`,
-      m.username ? `PH username: @${m.username}` : null,
-      m.twitter ? `Twitter: @${m.twitter}` : null,
-      m.headline ? `Headline: ${m.headline}` : null,
-      m.website ? `Website: ${m.website}` : null,
-    ].filter(Boolean).join(' | '))
-    .join('\n')
+  const hasMakers = launch.makers && launch.makers.length > 0
+  const makerList = hasMakers
+    ? launch.makers
+        .map(m => [
+          `Name: ${m.name}`,
+          m.username ? `PH username: @${m.username}` : null,
+          m.twitter ? `Twitter: @${m.twitter}` : null,
+          m.headline ? `Headline: ${m.headline}` : null,
+          m.website ? `Website: ${m.website}` : null,
+        ].filter(Boolean).join(' | '))
+        .join('\n')
+    : null
+
+  const teamSection = hasMakers
+    ? `Known team members:\n${makerList}`
+    : `No team data is available. Use your training knowledge to identify the founders of "${launch.name}" (${launch.website || 'website unknown'}). This is a YC-backed company.`
 
   const prompt = `You are a VC analyst researching startup founders.
 
-The following makers listed on Product Hunt built this product. Use everything available — their names, Twitter handles, headlines, and your training knowledge of the startup ecosystem — to build a profile on each.
-
 Product: ${launch.name} — ${launch.tagline}
-Product website: ${launch.website || 'N/A'}
+Website: ${launch.website || 'N/A'}
+${launch.batch ? `YC Batch: ${launch.batch}` : ''}
 
-Makers from Product Hunt:
-${makerList}
+${teamSection}
 
-For each maker, provide:
+For each founder you identify, provide:
 1. Background summary (prior roles, companies, education if known)
 2. Any repeat founder, FAANG, YC/accelerator signals
 3. Location if inferrable
 4. Confidence level in the information
 
-IMPORTANT: Always use the exact name provided above. Never replace a name with "Unknown".
+${hasMakers ? 'IMPORTANT: Always use the exact name provided above. Never replace a name with "Unknown".' : 'Identify 1-3 founders if known. If unknown, return an empty founders array.'}
 If you have no background info on someone, still include them with their name and confidence: "low".
 
 Respond with JSON only:
 {
   "founders": [
     {
-      "name": "exact name from the maker list above",
+      "name": "founder name",
       "background": "what you know, or 'No background information found' if nothing",
       "priorStartups": ["list or empty array"],
       "education": "string or null",
@@ -156,9 +161,14 @@ Respond with JSON only:
 
   const result = JSON.parse(res.choices[0].message.content)
 
-  // Always use PH API maker names directly — never trust GPT for this
-  result.founderNames = launch.makers.map(m => m.name).filter(Boolean)
-  if (!result.founderNames.length) result.founderNames = ['Unknown']
+  // Prefer PH/source maker names; fall back to names found in research
+  const sourceMakerNames = launch.makers.map(m => m.name).filter(Boolean)
+  if (sourceMakerNames.length) {
+    result.founderNames = sourceMakerNames
+  } else {
+    result.founderNames = (research.founders || []).map(f => f.name).filter(Boolean)
+    if (!result.founderNames.length) result.founderNames = ['Unknown']
+  }
 
   return result
 }
@@ -273,7 +283,9 @@ export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady
         vertical: launch.topics[0] || 'Unknown',
         stage: 'Unknown',
         location: null,
-        founderNames: launch.makers.map(m => m.name),
+        founderNames: launch.makers.length
+          ? launch.makers.map(m => m.name)
+          : research.founders?.map(f => f.name).filter(Boolean) || ['Unknown'],
         notableSignals: [],
         tractionSignals: null,
         enrichmentNotes: 'Enrichment unavailable.',
@@ -305,7 +317,7 @@ export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady
     }
 
     deals.push(deal)
-    onDealReady(deal)
+    await onDealReady(deal)
   }
 
   return deals

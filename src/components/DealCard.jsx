@@ -1,10 +1,28 @@
 import { useState } from 'react'
-import ScoreBadge from './ScoreBadge'
 import SignalBadge from './SignalBadge'
 
-function ExternalLinkIcon() {
+const SOURCE_META = {
+  producthunt: { label: 'Product Hunt', icon: '🔶', linkLabel: 'View on PH' },
+  github:      { label: 'GitHub',        icon: '🐙', linkLabel: 'View repo' },
+  yc:          { label: 'YC',            icon: '🏆', linkLabel: 'YC profile' },
+}
+
+function ScoreRing({ score }) {
+  const color =
+    score >= 8 ? '#34d399' :
+    score >= 6 ? '#fbbf24' :
+    '#64748b'
   return (
-    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+    <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+      <span className="text-2xl font-bold tabular-nums" style={{ color }}>{score}</span>
+      <span className="text-[10px] text-slate-600 font-medium">/ 10</span>
+    </div>
+  )
+}
+
+function ExternalIcon() {
+  return (
+    <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
     </svg>
   )
@@ -12,125 +30,104 @@ function ExternalLinkIcon() {
 
 function ChevronIcon({ open }) {
   return (
-    <svg
-      className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-      fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"
-    >
+    <svg className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   )
 }
 
-const SOURCE_LABELS = {
-  producthunt: { label: 'Product Hunt', icon: '🔶', color: 'text-orange-400' },
-  github: { label: 'GitHub', icon: '🐙', color: 'text-slate-300' },
-  yc: { label: 'YC', icon: '🏆', color: 'text-amber-400' },
-}
-
 export default function DealCard({ deal }) {
   const [expanded, setExpanded] = useState(false)
   const { launch, enrichment, scoring, lowInfo, source } = deal
+  const meta = SOURCE_META[source] || SOURCE_META.producthunt
   const signals = [...(enrichment.notableSignals || []), ...(lowInfo ? ['Low Info'] : [])]
-  const sourceInfo = SOURCE_LABELS[source] || SOURCE_LABELS.producthunt
 
-  const scoreBorderColor =
-    scoring.score >= 8
-      ? 'border-emerald-500/30'
-      : scoring.score >= 6
-      ? 'border-amber-500/20'
-      : 'border-slate-700/50'
+  const topBorder =
+    scoring.score >= 8 ? 'border-t-emerald-500/60' :
+    scoring.score >= 6 ? 'border-t-amber-500/40' :
+    'border-t-slate-800/60'
 
   return (
-    <div
-      className={`bg-[#111118] border rounded-xl overflow-hidden transition-all duration-200 hover:border-slate-600/60 ${scoreBorderColor}`}
-    >
-      {/* Card Header */}
+    <div className={`bg-[#111118] border border-slate-800/60 border-t-2 ${topBorder} rounded-xl overflow-hidden transition-all hover:border-slate-700/60`}>
+
+      {/* Main row */}
       <div className="p-5">
         <div className="flex items-start gap-4">
-          {/* Thumbnail */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-slate-800 flex items-center justify-center">
-            {launch.thumbnail ? (
-              <img src={launch.thumbnail} alt={launch.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xl font-bold text-slate-500">
-                {launch.name.charAt(0)}
-              </span>
-            )}
+
+          {/* Logo */}
+          <div className="w-11 h-11 rounded-lg overflow-hidden bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+            {launch.thumbnail
+              ? <img src={launch.thumbnail} alt={launch.name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
+              : <span className="text-lg font-bold text-slate-500">{(enrichment.companyName || launch.name).charAt(0)}</span>
+            }
           </div>
 
-          {/* Title block */}
+          {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-base font-semibold text-white leading-tight">
-                  {enrichment.companyName}
-                </h3>
-                <p className="text-sm text-slate-400 mt-0.5 leading-snug">
-                  {enrichment.tagline}
-                </p>
+            {/* Title + score */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-[15px] font-semibold text-white leading-tight">
+                    {enrichment.companyName}
+                  </h3>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 font-medium">
+                    {meta.icon} {source === 'yc' && launch.batch ? launch.batch : meta.label}
+                  </span>
+                  {scoring.passToPartners && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                      ★ Pass to partners
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-400 mt-0.5 leading-snug line-clamp-2">{enrichment.tagline}</p>
               </div>
-              <ScoreBadge score={scoring.score} />
+              <ScoreRing score={scoring.score} />
             </div>
 
-            {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs text-slate-500">
-              <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-400 font-medium">
-                {enrichment.vertical}
-              </span>
-              <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-400">
-                {enrichment.stage}
-              </span>
-              {enrichment.location && (
-                <span className="flex items-center gap-1">
-                  <span>📍</span> {enrichment.location}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <span>▲</span> {launch.votes} votes
+            {/* Meta pills */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+              <Pill>{enrichment.vertical}</Pill>
+              <Pill>{enrichment.stage}</Pill>
+              {enrichment.location && <Pill>📍 {enrichment.location}</Pill>}
+              {launch.votes > 0 && <Pill>▲ {launch.votes}</Pill>}
+            </div>
+
+            {/* Founders */}
+            <div className="mt-2.5 flex items-baseline gap-1.5 text-sm">
+              <span className="text-[11px] text-slate-500 flex-shrink-0">Founders</span>
+              <span className="text-slate-300 text-[13px]">
+                {enrichment.founderNames?.filter(n => n && n !== 'Unknown').join(', ') || <span className="text-slate-600 italic text-xs">Researching…</span>}
               </span>
             </div>
+
+            {/* Signals */}
+            {signals.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1">
+                {signals.map(s => <SignalBadge key={s} signal={s} />)}
+              </div>
+            )}
+
+            {/* Score reason */}
+            <p className="mt-2.5 text-[12px] text-slate-500 italic leading-relaxed">
+              "{scoring.scoreReason}"
+            </p>
           </div>
         </div>
 
-        {/* Founders */}
-        <div className="mt-3 flex items-center gap-2 text-sm">
-          <span className="text-slate-500 text-xs">Founders:</span>
-          <span className="text-slate-300">
-            {enrichment.founderNames?.join(', ') || 'Unknown'}
-          </span>
-        </div>
-
-        {/* Signals row */}
-        {signals.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {signals.map(s => <SignalBadge key={s} signal={s} />)}
-          </div>
-        )}
-
-        {/* Score reason */}
-        <p className="mt-3 text-xs text-slate-500 italic leading-relaxed">
-          "{scoring.scoreReason}"
-        </p>
-
-        {/* Action row */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex gap-3">
-            <a
-              href={launch.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex items-center gap-1.5 text-xs ${sourceInfo.color} hover:opacity-80 transition-opacity`}
-            >
-              {sourceInfo.icon} {sourceInfo.label} <ExternalLinkIcon />
-            </a>
+        {/* Footer row */}
+        <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-slate-800/50">
+          <div className="flex items-center gap-4">
+            {launch.url && (
+              <a href={launch.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors">
+                {meta.linkLabel} <ExternalIcon />
+              </a>
+            )}
             {launch.website && (
-              <a
-                href={launch.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
-              >
-                Website <ExternalLinkIcon />
+              <a href={launch.website} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors">
+                Website <ExternalIcon />
               </a>
             )}
           </div>
@@ -138,82 +135,101 @@ export default function DealCard({ deal }) {
             onClick={() => setExpanded(e => !e)}
             className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
           >
-            {expanded ? 'Less' : 'Full Profile'}
+            {expanded ? 'Collapse' : 'Full profile'}
             <ChevronIcon open={expanded} />
           </button>
         </div>
       </div>
 
-      {/* Expanded section */}
+      {/* Expanded profile */}
       {expanded && (
-        <div className="border-t border-slate-800/60 px-5 py-4 space-y-4 bg-[#0d0d14]">
+        <div className="border-t border-slate-800/50 bg-[#0d0d13] px-5 py-4 space-y-5">
+
           {/* Analyst notes */}
-          <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Analyst Notes</h4>
+          <Section title="Analyst Notes">
             <p className="text-sm text-slate-300 leading-relaxed">{enrichment.enrichmentNotes}</p>
-          </div>
+          </Section>
 
           {/* Traction */}
           {enrichment.tractionSignals && (
-            <div>
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Traction Signals</h4>
+            <Section title="Traction Signals">
               <p className="text-sm text-slate-300 leading-relaxed">{enrichment.tractionSignals}</p>
-            </div>
+            </Section>
           )}
 
-          {/* Founder profiles */}
+          {/* Founder research */}
           {deal.research?.founders?.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Founder Research</h4>
-              <div className="space-y-3">
-                {deal.research.founders.map((founder, i) => (
-                  <div key={i} className="bg-slate-900/50 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-white">{founder.name}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${
-                        founder.confidence === 'high' ? 'bg-emerald-900/50 text-emerald-400' :
-                        founder.confidence === 'medium' ? 'bg-amber-900/50 text-amber-400' :
-                        'bg-slate-800 text-slate-400'
-                      }`}>
-                        {founder.confidence} confidence
-                      </span>
+            <Section title="Founder Research">
+              <div className="space-y-2">
+                {deal.research.founders.map((f, i) => (
+                  <div key={i} className="bg-slate-900/60 rounded-lg p-3 border border-slate-800/40">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium text-white">{f.name}</span>
+                      <ConfidencePill level={f.confidence} />
                     </div>
-                    <p className="text-xs text-slate-400 leading-relaxed">{founder.background}</p>
-                    {founder.education && (
-                      <p className="text-xs text-slate-500 mt-1">🎓 {founder.education}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">{f.background}</p>
+                    {f.education && <p className="text-xs text-slate-500 mt-1">🎓 {f.education}</p>}
+                    {f.priorStartups?.length > 0 && (
+                      <p className="text-xs text-slate-500 mt-1">🚀 Prior: {f.priorStartups.join(', ')}</p>
                     )}
-                    {founder.priorStartups?.length > 0 && (
-                      <p className="text-xs text-slate-500 mt-1">🚀 Prior: {founder.priorStartups.join(', ')}</p>
-                    )}
+                    {f.location && <p className="text-xs text-slate-500 mt-1">📍 {f.location}</p>}
                   </div>
                 ))}
               </div>
-            </div>
+            </Section>
+          )}
+
+          {/* Research notes */}
+          {deal.research?.researchNotes && (
+            <Section title="Research Notes">
+              <p className="text-xs text-slate-400 leading-relaxed">{deal.research.researchNotes}</p>
+            </Section>
           )}
 
           {/* Red flags */}
           {scoring.redFlags?.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">Red Flags</h4>
+            <Section title="Red Flags" titleClass="text-red-400">
               <ul className="space-y-1">
                 {scoring.redFlags.map((f, i) => (
                   <li key={i} className="text-xs text-red-300 flex items-start gap-1.5">
-                    <span className="mt-0.5 text-red-500">⚠</span> {f}
+                    <span className="text-red-500 mt-0.5 flex-shrink-0">⚠</span> {f}
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {/* Pass to partners */}
-          {scoring.passToPartners && (
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Recommended for partner review
-            </div>
+            </Section>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+function Pill({ children }) {
+  return (
+    <span className="px-2 py-0.5 bg-slate-800/80 border border-slate-700/30 rounded text-[11px] text-slate-400">
+      {children}
+    </span>
+  )
+}
+
+function Section({ title, children, titleClass = 'text-slate-400' }) {
+  return (
+    <div>
+      <p className={`text-[11px] font-semibold uppercase tracking-wider mb-2 ${titleClass}`}>{title}</p>
+      {children}
+    </div>
+  )
+}
+
+function ConfidencePill({ level }) {
+  const styles = {
+    high: 'bg-emerald-900/50 text-emerald-400',
+    medium: 'bg-amber-900/50 text-amber-400',
+    low: 'bg-slate-800 text-slate-500',
+  }
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${styles[level] || styles.low}`}>
+      {level} confidence
+    </span>
   )
 }
