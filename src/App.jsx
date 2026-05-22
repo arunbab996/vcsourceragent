@@ -1,20 +1,29 @@
 import { useState, useCallback } from 'react'
 import { fetchRecentLaunches } from './lib/productHunt'
+import { fetchRecentGithubRepos } from './lib/github'
 import { runAgentPipeline } from './lib/agent'
+import { saveDeal, isSupabaseEnabled } from './lib/supabase'
 import DealCard from './components/DealCard'
 import AgentStatusBar from './components/AgentStatusBar'
 import FilterBar from './components/FilterBar'
 
 const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY
 const PH_KEY = import.meta.env.VITE_PH_API_KEY
+const GH_KEY = import.meta.env.VITE_GITHUB_TOKEN
 
 const DEFAULT_FILTERS = {
   minScore: 1,
   vertical: '',
   stage: '',
   signal: '',
+  source: '',
   sort: 'score',
 }
+
+const SOURCES = [
+  { id: 'producthunt', label: 'Product Hunt', icon: '🔶', requires: !!PH_KEY },
+  { id: 'github', label: 'GitHub', icon: '🐙', requires: !!GH_KEY },
+]
 
 function normalise(s) {
   return (s || '').toLowerCase().trim()
@@ -24,6 +33,7 @@ function applyFilters(deals, filters) {
   return deals
     .filter(d => {
       if (d.scoring.score < filters.minScore) return false
+      if (filters.source && d.source !== filters.source) return false
       if (filters.vertical && normalise(d.enrichment?.vertical) !== normalise(filters.vertical)) return false
       if (filters.stage && normalise(d.enrichment?.stage) !== normalise(filters.stage)) return false
       if (filters.signal && !(d.enrichment?.notableSignals || []).some(s => normalise(s) === normalise(filters.signal))) return false
@@ -36,6 +46,9 @@ function applyFilters(deals, filters) {
 }
 
 export default function App() {
+  const [selectedSources, setSelectedSources] = useState(
+    SOURCES.filter(s => s.requires).map(s => s.id)
+  )
   const [deals, setDeals] = useState([])
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [agentState, setAgentState] = useState({
@@ -47,14 +60,22 @@ export default function App() {
   const [progress, setProgress] = useState(null)
   const [error, setError] = useState(null)
   const [isRunning, setIsRunning] = useState(false)
+  const [savedCount, setSavedCount] = useState(0)
+
+  const toggleSource = (id) => {
+    setSelectedSources(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    )
+  }
 
   const handleRun = useCallback(async () => {
     if (isRunning) return
-
-    if (!OPENAI_KEY || !PH_KEY) {
-      setError(
-        'Missing env vars. Make sure VITE_OPENAI_API_KEY and VITE_PH_API_KEY are set in Vercel → Project Settings → Environment Variables, then redeploy.'
-      )
+    if (!OPENAI_KEY) {
+      setError('Missing VITE_OPENAI_API_KEY — add it in Vercel and redeploy.')
+      return
+    }
+    if (selectedSources.length === 0) {
+      setError('Select at least one source to run.')
       return
     }
 
@@ -62,34 +83,57 @@ export default function App() {
     setDeals([])
     setError(null)
     setProgress(null)
+    setSavedCount(0)
+
+    let totalProcessed = 0
+
+    const onProgress = ({ step, message, current, total }) => {
+      setAgentState(s => ({ ...s, status: step, message }))
+      if (current && total) setProgress({ current, total })
+    }
+
+    const makeOnDealReady = (source) => async (deal) => {
+      totalProcessed++
+      const dealWithSource = { ...deal, source }
+      setDeals(prev => [...prev, dealWithSource])
+      setAgentState(s => ({ ...s, dealsProcessed: totalProcessed }))
+
+      if (isSupabaseEnabled()) {
+        const { error: saveErr } = await saveDeal(dealWithSource, source)
+        if (!saveErr) setSavedCount(n => n + 1)
+      }
+    }
 
     try {
-      setAgentState({ status: 'discover', message: 'Fetching recent Product Hunt launches...', dealsFound: 0, dealsProcessed: 0 })
-
-      const launches = await fetchRecentLaunches(PH_KEY, 48, 30)
-
-      setAgentState(s => ({ ...s, message: `Found ${launches.length} launches. Filtering...`, dealsFound: launches.length }))
-      setAgentState(s => ({ ...s, status: 'filter' }))
-
-      let processed = 0
-      const onProgress = ({ step, message, current, total }) => {
-        setAgentState(s => ({ ...s, status: step, message }))
-        if (current && total) setProgress({ current, total })
+      // ── Product Hunt ──────────────────────────────────────────────────────────
+      if (selectedSources.includes('producthunt')) {
+        if (!PH_KEY) {
+          setError('VITE_PH_API_KEY is missing. Add it in Vercel.')
+        } else {
+          setAgentState({ status: 'discover', message: 'Fetching Product Hunt launches...', dealsFound: 0, dealsProcessed: 0 })
+          const launches = await fetchRecentLaunches(PH_KEY, 48, 30)
+          setAgentState(s => ({ ...s, message: `PH: ${launches.length} launches found. Filtering...`, dealsFound: launches.length }))
+          await runAgentPipeline(OPENAI_KEY, launches, onProgress, makeOnDealReady('producthunt'))
+        }
       }
 
-      const onDealReady = (deal) => {
-        processed++
-        setDeals(prev => [...prev, deal])
-        setAgentState(s => ({ ...s, dealsProcessed: processed }))
+      // ── GitHub ────────────────────────────────────────────────────────────────
+      if (selectedSources.includes('github')) {
+        if (!GH_KEY) {
+          setError('VITE_GITHUB_TOKEN is missing. Add it in Vercel.')
+        } else {
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching GitHub trending repos...' }))
+          const repos = await fetchRecentGithubRepos(GH_KEY, 48, 30)
+          setAgentState(s => ({ ...s, message: `GitHub: ${repos.length} repos found. Filtering...` }))
+          await runAgentPipeline(OPENAI_KEY, repos, onProgress, makeOnDealReady('github'))
+        }
       }
-
-      await runAgentPipeline(OPENAI_KEY, launches, onProgress, onDealReady)
 
       setAgentState(s => ({
         ...s,
         status: 'done',
-        message: `Pipeline complete. ${processed} deals sourced.`,
-        dealsProcessed: processed,
+        message: `Pipeline complete. ${totalProcessed} deals sourced.${isSupabaseEnabled() ? ` ${savedCount} saved to DB.` : ''}`,
+        dealsProcessed: totalProcessed,
       }))
     } catch (err) {
       console.error(err)
@@ -98,29 +142,54 @@ export default function App() {
     } finally {
       setIsRunning(false)
     }
-  }, [isRunning])
+  }, [isRunning, selectedSources, savedCount])
 
   const filteredDeals = applyFilters(deals, filters)
-
-  const keysConfigured = OPENAI_KEY && PH_KEY
+  const keysConfigured = !!OPENAI_KEY
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
-
       {/* Header */}
       <header className="border-b border-slate-800/60 bg-[#0a0a0f]/80 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-xs font-bold">
               VC
             </div>
             <div>
               <h1 className="text-sm font-bold text-white tracking-tight">Deal Sourcer</h1>
-              <p className="text-xs text-slate-500 hidden sm:block">Product Hunt × GPT-4o</p>
+              <p className="text-xs text-slate-500 hidden sm:block">GPT-4o × Multi-source</p>
             </div>
           </div>
 
+          {/* Source toggles */}
+          <div className="flex items-center gap-2">
+            {SOURCES.map(src => (
+              <button
+                key={src.id}
+                onClick={() => !isRunning && toggleSource(src.id)}
+                disabled={!src.requires}
+                title={!src.requires ? `Add VITE_${src.id === 'github' ? 'GITHUB_TOKEN' : 'PH_API_KEY'} in Vercel` : ''}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  !src.requires
+                    ? 'border-slate-800 text-slate-600 cursor-not-allowed'
+                    : selectedSources.includes(src.id)
+                    ? 'border-violet-500/50 bg-violet-500/10 text-violet-300'
+                    : 'border-slate-700/60 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                }`}
+              >
+                <span>{src.icon}</span>
+                <span>{src.label}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-3">
+            {isSupabaseEnabled() && savedCount > 0 && (
+              <span className="text-xs text-emerald-400 hidden sm:block">
+                {savedCount} saved to DB
+              </span>
+            )}
             <button
               onClick={handleRun}
               disabled={isRunning || !keysConfigured}
@@ -147,30 +216,26 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* Status bar */}
         <AgentStatusBar agentState={agentState} progress={progress} />
 
-        {/* Error */}
         {error && (
           <div className="bg-red-950/30 border border-red-800/40 rounded-xl px-4 py-3 text-sm text-red-300">
             <strong className="font-medium">Error:</strong> {error}
           </div>
         )}
 
-        {/* Empty state */}
         {deals.length === 0 && !isRunning && agentState.status === 'idle' && (
           <div className="text-center py-24">
             <div className="text-5xl mb-4">🔭</div>
             <h2 className="text-xl font-semibold text-slate-300 mb-2">No deals yet</h2>
             <p className="text-slate-500 text-sm max-w-sm mx-auto">
               {keysConfigured
-                ? <>Click <strong className="text-slate-400">Run Agent</strong> to discover and score today's top Product Hunt launches using GPT-4o.</>
-                : 'Add VITE_OPENAI_API_KEY and VITE_PH_API_KEY to your environment variables, then redeploy.'}
+                ? <>Select your sources above, then click <strong className="text-slate-400">Run Agent</strong>.</>
+                : 'Add VITE_OPENAI_API_KEY and source keys to Vercel environment variables, then redeploy.'}
             </p>
           </div>
         )}
 
-        {/* Loading placeholder cards */}
         {isRunning && deals.length === 0 && (
           <div className="grid gap-4">
             {[1, 2, 3].map(i => (
@@ -189,15 +254,12 @@ export default function App() {
           </div>
         )}
 
-        {/* Deal feed */}
         {deals.length > 0 && (
           <>
-            {/* Filter bar */}
             <div className="bg-[#111118] border border-slate-800/60 rounded-xl px-4 py-3">
               <FilterBar filters={filters} onFiltersChange={setFilters} deals={deals} />
             </div>
 
-            {/* Count */}
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-500">
                 Showing <span className="text-slate-300 font-medium">{filteredDeals.length}</span> of{' '}
@@ -208,7 +270,7 @@ export default function App() {
 
             <div className="grid gap-4">
               {filteredDeals.map(deal => (
-                <DealCard key={deal.id} deal={deal} />
+                <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
               ))}
             </div>
 

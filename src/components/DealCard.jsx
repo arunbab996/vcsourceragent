@@ -21,10 +21,17 @@ function ChevronIcon({ open }) {
   )
 }
 
+const SOURCE_LABELS = {
+  producthunt: { label: 'Product Hunt', icon: '🔶', color: 'text-orange-400' },
+  github: { label: 'GitHub', icon: '🐙', color: 'text-slate-300' },
+  yc: { label: 'YC', icon: '🏆', color: 'text-amber-400' },
+}
+
 export default function DealCard({ deal }) {
   const [expanded, setExpanded] = useState(false)
-  const { launch, enrichment, scoring, lowInfo } = deal
+  const { launch, enrichment, scoring, lowInfo, source } = deal
   const signals = [...(enrichment.notableSignals || []), ...(lowInfo ? ['Low Info'] : [])]
+  const sourceInfo = SOURCE_LABELS[source] || SOURCE_LABELS.producthunt
 
   const scoreBorderColor =
     scoring.score >= 8
@@ -112,9 +119,9 @@ export default function DealCard({ deal }) {
               href={launch.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+              className={`inline-flex items-center gap-1.5 text-xs ${sourceInfo.color} hover:opacity-80 transition-opacity`}
             >
-              Product Hunt <ExternalLinkIcon />
+              {sourceInfo.icon} {sourceInfo.label} <ExternalLinkIcon />
             </a>
             {launch.website && (
               <a

@@ -65,6 +65,20 @@ export default function FilterBar({ filters, onFiltersChange, deals }) {
         </select>
       </div>
 
+      {/* Source filter */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-slate-500">Source</label>
+        <select
+          value={filters.source}
+          onChange={e => onFiltersChange({ ...filters, source: e.target.value })}
+          className="bg-slate-800 border border-slate-700/60 text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">All</option>
+          <option value="producthunt">🔶 Product Hunt</option>
+          <option value="github">🐙 GitHub</option>
+        </select>
+      </div>
+
       {/* Sort */}
       <div className="flex items-center gap-2 ml-auto">
         <label className="text-xs text-slate-500">Sort</label>
