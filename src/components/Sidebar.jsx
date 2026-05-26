@@ -1,10 +1,11 @@
-import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, EdgarLogo } from './Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, HNHiringLogo, EdgarLogo } from './Logos'
 
 const LOGO = {
   producthunt: ProductHuntLogo,
   github:      GitHubLogo,
   yc:          YCLogo,
   showhn:      ShowHNLogo,
+  hnhiring:    HNHiringLogo,
   edgar:       EdgarLogo,
 }
 
@@ -87,6 +88,7 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
               <option value="github">GitHub</option>
               <option value="yc">YC</option>
               <option value="showhn">Show HN</option>
+              <option value="hnhiring">HN Hiring</option>
               <option value="edgar">SEC EDGAR</option>
             </Select>
           </Field>

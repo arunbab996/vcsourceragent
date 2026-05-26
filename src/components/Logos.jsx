@@ -34,14 +34,30 @@ export function ShowHNLogo({ size = 16 }) {
   )
 }
 
-export function EdgarLogo({ size = 16 }) {
+export function HNHiringLogo({ size = 16 }) {
+  // HN orange square + briefcase silhouette
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      <rect width="40" height="40" rx="5" fill="#0B1E36" />
-      {/* Document icon */}
-      <rect x="10" y="7" width="17" height="22" rx="2" fill="none" stroke="#4A90D9" strokeWidth="2" />
-      <path d="M24 7v6h3" stroke="#4A90D9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14 17h12M14 21h12M14 25h7" stroke="#4A90D9" strokeWidth="1.8" strokeLinecap="round" />
+      <rect width="40" height="40" rx="5" fill="#1A1A1A" />
+      <rect width="40" height="40" rx="5" stroke="#FF6600" strokeWidth="2" />
+      {/* Briefcase */}
+      <rect x="9" y="17" width="22" height="15" rx="2" fill="none" stroke="#FF6600" strokeWidth="2.2" />
+      <path d="M15 17v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" stroke="#FF6600" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M9 24h22" stroke="#FF6600" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function EdgarLogo({ size = 16 }) {
+  // SEC shield + document icon
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="5" fill="#0D1B2A" />
+      {/* Shield */}
+      <path d="M20 7 L31 12 L31 21 C31 27 25.5 32 20 34 C14.5 32 9 27 9 21 L9 12 Z"
+        fill="none" stroke="#4A90D9" strokeWidth="2.2" strokeLinejoin="round" />
+      {/* Dollar sign */}
+      <text x="20" y="25" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#4A90D9" fontFamily="serif">$</text>
     </svg>
   )
 }

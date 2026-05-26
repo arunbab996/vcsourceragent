@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, EdgarLogo } from './Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, HNHiringLogo, EdgarLogo } from './Logos'
 import VerticalBadge from './VerticalBadge'
 
 const SOURCE_LOGO = {
@@ -7,6 +7,7 @@ const SOURCE_LOGO = {
   github:      GitHubLogo,
   yc:          YCLogo,
   showhn:      ShowHNLogo,
+  hnhiring:    HNHiringLogo,
   edgar:       EdgarLogo,
 }
 const SOURCE_LINK = {
@@ -14,6 +15,7 @@ const SOURCE_LINK = {
   github:      'GitHub',
   yc:          'HN Launch',
   showhn:      'Show HN',
+  hnhiring:    'HN Hiring',
   edgar:       'SEC EDGAR',
 }
 
@@ -88,11 +90,9 @@ export default function DealCard({ deal }) {
                 {enrichment.stage}
               </span>
             )}
-            {launch.raiseAmount > 0 && source === 'edgar' && (
-              <span className="text-[10px] text-emerald-600 bg-emerald-950/30 border border-emerald-900/30 px-1.5 py-px rounded">
-                {launch.raiseAmount >= 1_000_000
-                  ? `$${(launch.raiseAmount / 1_000_000).toFixed(1)}M`
-                  : `$${Math.round(launch.raiseAmount / 1_000)}K`}
+            {source === 'hnhiring' && (
+              <span className="text-[10px] text-amber-700 bg-amber-950/30 border border-amber-900/30 px-1.5 py-px rounded">
+                Hiring
               </span>
             )}
             {scoring.passToPartners && (

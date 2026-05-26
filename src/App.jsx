@@ -3,10 +3,11 @@ import { fetchRecentLaunches } from './lib/productHunt'
 import { fetchRecentGithubRepos } from './lib/github'
 import { fetchRecentYCCompanies } from './lib/yc'
 import { fetchShowHNPosts } from './lib/showhn'
+import { fetchHNHiringPosts } from './lib/hnhiring'
 import { fetchRecentFormD } from './lib/edgar'
 import { runAgentPipeline } from './lib/agent'
 import { saveDeal, isSupabaseEnabled } from './lib/supabase'
-import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, EdgarLogo, DiscoveryScoutLogo } from './components/Logos'
+import { DiscoveryScoutLogo } from './components/Logos'
 import DealCard from './components/DealCard'
 import AgentStatusBar from './components/AgentStatusBar'
 import Sidebar from './components/Sidebar'
@@ -21,6 +22,7 @@ const SOURCES = [
   { id: 'github',      label: 'GitHub',        envKey: 'VITE_GITHUB_TOKEN', requires: !!GH_KEY },
   { id: 'yc',          label: 'YC',            envKey: null,                requires: true },
   { id: 'showhn',      label: 'Show HN',       envKey: null,                requires: true },
+  { id: 'hnhiring',    label: 'HN Hiring',     envKey: null,                requires: true },
   { id: 'edgar',       label: 'SEC EDGAR',     envKey: null,                requires: true },
 ]
 
@@ -132,9 +134,18 @@ export default function App() {
         })
       }
 
+      if (selectedSources.includes('hnhiring')) {
+        await runSource('HN Hiring', async () => {
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching HN "Who is Hiring" thread…' }))
+          const items = await fetchHNHiringPosts(30)
+          setAgentState(s => ({ ...s, message: `${items.length} hiring posts — filtering…` }))
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('hnhiring'))
+        })
+      }
+
       if (selectedSources.includes('edgar')) {
         await runSource('SEC EDGAR', async () => {
-          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching SEC EDGAR Form D filings…' }))
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching SEC Form D filings…' }))
           const items = await fetchRecentFormD(7, 20)
           setAgentState(s => ({ ...s, message: `${items.length} Form D filings — filtering…` }))
           await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('edgar'))

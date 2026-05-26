@@ -3,7 +3,8 @@ const SOURCE_ABBR = {
   github:      'GH',
   yc:          'YC',
   showhn:      'HN',
-  edgar:       'SEC',
+  hnhiring:    'Jobs',
+  edgar:       'EDGAR',
 }
 
 export default function StatsBar({ deals, isRunning }) {
