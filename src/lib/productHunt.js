@@ -33,58 +33,22 @@ const LAUNCHES_QUERY = `
             websiteUrl
             profileImage
           }
-          comments(first: 5) {
-            edges {
-              node {
-                body
-                createdAt
-                user {
-                  id
-                  name
-                  username
-                  headline
-                  twitterUsername
-                  websiteUrl
-                  profileImage
-                }
-              }
-            }
-          }
         }
       }
     }
   }
 `
 
-// Shape a user object (maker or comment author) into our standard maker format
+// Shape a PH user/maker object into our standard maker format
 const shapeMaker = u => ({
   id:       u.id,
   name:     u.name,
-  username: u.username  || '',
-  headline: u.headline  || '',
-  twitter:  u.twitterUsername || '',
-  website:  u.websiteUrl || '',
-  avatar:   u.profileImage   || null,
+  username: u.username         || '',
+  headline: u.headline         || '',
+  twitter:  u.twitterUsername  || '',
+  website:  u.websiteUrl       || '',
+  avatar:   u.profileImage     || null,
 })
-
-// If the API returns registered makers, use them.
-// Otherwise fall back to the first commenter(s) — PH pinned/maker comments
-// float to the top and the founder usually posts within the first few replies.
-function resolveMakers(node) {
-  const registered = (node.makers || []).map(shapeMaker).filter(m => m.name)
-  if (registered.length) return registered
-
-  // Oldest-first: founders almost always post the first comment on their own launch
-  const commentAuthors = (node.comments?.edges || [])
-    .map(e => e.node?.user)
-    .filter(Boolean)
-    .filter((u, i, arr) => arr.findIndex(x => x.id === u.id) === i) // dedupe
-    .slice(0, 2)
-    .map(shapeMaker)
-    .filter(m => m.name)
-
-  return commentAuthors
-}
 
 export async function fetchRecentLaunches(apiKey, hoursBack = 48, limit = 30) {
   const postedAfter = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString()
@@ -129,6 +93,6 @@ export async function fetchRecentLaunches(apiKey, hoursBack = 48, limit = 30) {
     createdAt: node.createdAt,
     thumbnail: node.thumbnail?.url || null,
     topics: (node.topics?.edges || []).map(e => e.node.name),
-    makers: resolveMakers(node),
+    makers: (node.makers || []).map(shapeMaker).filter(m => m.name),
   }))
 }
