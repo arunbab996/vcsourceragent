@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { fetchRecentLaunches } from './lib/productHunt'
 import { fetchRecentGithubRepos } from './lib/github'
 import { fetchRecentYCCompanies } from './lib/yc'
@@ -8,6 +8,7 @@ import { fetchRecentFormD } from './lib/edgar'
 import { runAgentPipeline } from './lib/agent'
 import { saveDeal, isSupabaseEnabled } from './lib/supabase'
 import { DiscoveryScoutLogo } from './components/Logos'
+import PipelineHero from './components/PipelineHero'
 import DealCard from './components/DealCard'
 import TableView from './components/TableView'
 import AgentStatusBar from './components/AgentStatusBar'
@@ -60,6 +61,19 @@ export default function App() {
   const [savedCount, setSavedCount] = useState(0)
   const [viewMode, setViewMode]     = useState('card') // 'card' | 'table'
 
+  // Hero crossfade: visible until first deal arrives, then fades out
+  const [heroVisible, setHeroVisible] = useState(true)
+  const [heroFading,  setHeroFading]  = useState(false)
+  const heroTimerRef = useRef(null)
+
+  useEffect(() => {
+    if (deals.length > 0 && heroVisible && !heroFading) {
+      setHeroFading(true)
+      heroTimerRef.current = setTimeout(() => setHeroVisible(false), 520)
+    }
+    return () => clearTimeout(heroTimerRef.current)
+  }, [deals.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleSource = id =>
     setSelectedSources(p => p.includes(id) ? p.filter(s => s !== id) : [...p, id])
 
@@ -69,6 +83,7 @@ export default function App() {
     if (!selectedSources.length) { setError('Select at least one source.'); return }
 
     setIsRunning(true); setDeals([]); setError(null); setProgress(null); setSavedCount(0)
+    setHeroVisible(true); setHeroFading(false); clearTimeout(heroTimerRef.current)
     let total = 0
 
     const onProgress = ({ step, message, current, total: t }) => {
@@ -237,39 +252,27 @@ export default function App() {
             </div>
           )}
 
-          {/* Empty */}
-          {!deals.length && !isRunning && agentState.status === 'idle' && (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center gap-2">
-              <span className="text-[13px] text-[#666]">No deals yet</span>
-              <span className="text-[12px] text-[#555] max-w-xs">
-                {OPENAI_KEY ? 'Select sources in the sidebar and run the pipeline.' : 'Add API keys to Vercel env vars and redeploy.'}
-              </span>
+          {/* Pipeline Hero — shown while no deals have arrived yet */}
+          {heroVisible && (
+            <div
+              style={{
+                transition: 'opacity .52s ease',
+                opacity: heroFading ? 0 : 1,
+                pointerEvents: heroFading ? 'none' : 'auto',
+              }}
+            >
+              <PipelineHero
+                isRunning={isRunning}
+                onRun={handleRun}
+                disabled={!OPENAI_KEY}
+                agentState={agentState}
+              />
             </div>
           )}
 
-          {/* Skeleton */}
-          {isRunning && !deals.length && (
-            <div className="border border-white/[0.05] rounded-md overflow-hidden">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="flex items-start gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 animate-pulse">
-                  <div className="w-6 h-4 bg-[#1C1C1C] rounded flex-shrink-0 mt-0.5" />
-                  <div className="w-8 h-8 bg-[#1C1C1C] rounded-md flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <div className="h-3 bg-[#1C1C1C] rounded w-32" />
-                      <div className="h-3 bg-[#181818] rounded w-16" />
-                    </div>
-                    <div className="h-2.5 bg-[#181818] rounded w-56" />
-                    <div className="h-2 bg-[#161616] rounded w-40" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Deal list */}
+          {/* Deal list — fades in once deals start arriving */}
           {deals.length > 0 && (
-            <>
+            <div className="fade-in-up">
               <StatsBar deals={deals} isRunning={isRunning} />
 
               <div className="flex items-center justify-between mb-2">
@@ -320,7 +323,7 @@ export default function App() {
                     </div>
                   )
               }
-            </>
+            </div>
           )}
         </main>
       </div>
