@@ -33,12 +33,12 @@ const LAUNCHES_QUERY = `
             websiteUrl
             profileImage
           }
-          comments(first: 5, order: NEWEST) {
+          comments(first: 5, order: OLDEST) {
             edges {
               node {
                 body
                 createdAt
-                author {
+                user {
                   id
                   name
                   username
@@ -74,10 +74,11 @@ function resolveMakers(node) {
   const registered = (node.makers || []).map(shapeMaker).filter(m => m.name)
   if (registered.length) return registered
 
+  // Oldest-first: founders almost always post the first comment on their own launch
   const commentAuthors = (node.comments?.edges || [])
-    .map(e => e.node?.author)
+    .map(e => e.node?.user)
     .filter(Boolean)
-    .filter((a, i, arr) => arr.findIndex(x => x.id === a.id) === i) // dedupe
+    .filter((u, i, arr) => arr.findIndex(x => x.id === u.id) === i) // dedupe
     .slice(0, 2)
     .map(shapeMaker)
     .filter(m => m.name)
