@@ -43,7 +43,8 @@ export default function TableView({ deals }) {
       {deals.map(deal => {
         const { launch, enrichment, source } = deal
         const Logo     = SOURCE_LOGO[source]
-        const founders = (enrichment.founderNames || []).filter(n => n && n !== 'Unknown')
+        const founders = (enrichment.founderNames || [])
+          .filter(n => n && typeof n === 'string' && n !== 'Unknown' && !/^\[?redacted\]?$/i.test(n.trim()))
         const signals  = enrichment.notableSignals || []
 
         return (

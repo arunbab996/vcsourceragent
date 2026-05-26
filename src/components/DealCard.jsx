@@ -48,7 +48,8 @@ export default function DealCard({ deal }) {
   const [open, setOpen] = useState(false)
   const { launch, enrichment, scoring, source, research } = deal
   const Logo     = SOURCE_LOGO[source] || ProductHuntLogo
-  const founders = (enrichment.founderNames || []).filter(n => n && n !== 'Unknown')
+  const founders = (enrichment.founderNames || [])
+    .filter(n => n && typeof n === 'string' && n !== 'Unknown' && !/^\[?redacted\]?$/i.test(n.trim()))
   const signals  = enrichment.notableSignals || []
 
   return (

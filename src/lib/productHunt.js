@@ -93,6 +93,10 @@ export async function fetchRecentLaunches(apiKey, hoursBack = 48, limit = 30) {
     createdAt: node.createdAt,
     thumbnail: node.thumbnail?.url || null,
     topics: (node.topics?.edges || []).map(e => e.node.name),
-    makers: (node.makers || []).map(shapeMaker).filter(m => m.name),
+    makers: (() => {
+      const list = (node.makers || []).map(shapeMaker).filter(m => m.name)
+      console.log(`[PH] ${node.name} | makers (${list.length}):`, list.map(m => m.name))
+      return list
+    })(),
   }))
 }

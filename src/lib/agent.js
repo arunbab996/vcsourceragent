@@ -186,13 +186,23 @@ Respond with JSON only:
 
   const result = JSON.parse(res.choices[0].message.content)
 
-  // Prefer PH/source maker names; fall back to names found in research
-  const sourceMakerNames = launch.makers.map(m => m.name).filter(Boolean)
+  // Strip any "[REDACTED]" / "REDACTED" placeholders that GPT sometimes emits
+  // for real people it knows but declines to name, then Unknown stubs
+  const isReal = n => {
+    if (!n || typeof n !== 'string') return false
+    const t = n.trim()
+    return t && t !== 'Unknown' && !/^\[?redacted\]?$/i.test(t)
+  }
+
+  const sourceMakerNames = launch.makers.map(m => m.name).filter(isReal)
+  console.log(`[Enrich] ${launch.name} | source makers (${sourceMakerNames.length}):`, sourceMakerNames)
+
   if (sourceMakerNames.length) {
     result.founderNames = sourceMakerNames
   } else {
-    result.founderNames = (research.founders || []).map(f => f.name).filter(Boolean)
-    if (!result.founderNames.length) result.founderNames = ['Unknown']
+    const researchNames = (research.founders || []).map(f => f.name).filter(isReal)
+    console.log(`[Enrich] ${launch.name} | research founders (${researchNames.length}):`, researchNames)
+    result.founderNames = researchNames   // empty array is fine — card shows nothing
   }
 
   return result
