@@ -11,8 +11,8 @@ const LOGO = {
 
 export default function Sidebar({ sources, selectedSources, onToggleSource, filters, onFiltersChange, deals, isRunning }) {
   const verticals = [...new Set(deals.map(d => d.enrichment?.vertical).filter(Boolean))].sort()
-  const anyFilter = filters.minScore > 1 || filters.vertical || filters.stage || filters.signal || filters.source
-  const clear = () => onFiltersChange({ minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'score' })
+  const anyFilter = filters.vertical || filters.stage || filters.signal || filters.source
+  const clear = () => onFiltersChange({ minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'votes' })
 
   return (
     <div className="space-y-5">
@@ -71,24 +71,6 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
         </div>
 
         <div className="space-y-3">
-          <Field label="Min score">
-            <div className="flex gap-1 flex-wrap">
-              {[1, 5, 6, 7, 8].map(n => (
-                <button
-                  key={n}
-                  onClick={() => onFiltersChange({ ...filters, minScore: n })}
-                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                    filters.minScore === n
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-[#1C1C1C] text-[#888] hover:text-[#E8E8E8] border border-white/[0.06]'
-                  }`}
-                >
-                  {n === 1 ? 'All' : `${n}+`}
-                </button>
-              ))}
-            </div>
-          </Field>
-
           <Field label="Source">
             <Select value={filters.source} onChange={v => onFiltersChange({ ...filters, source: v })}>
               <option value="">All sources</option>
@@ -131,8 +113,8 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
 
           <Field label="Sort">
             <Select value={filters.sort} onChange={v => onFiltersChange({ ...filters, sort: v })}>
-              <option value="score">Score</option>
               <option value="votes">Votes</option>
+              <option value="date">Date</option>
             </Select>
           </Field>
         </div>

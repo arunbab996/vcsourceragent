@@ -63,11 +63,12 @@ export function EdgarLogo({ size = 16 }) {
 }
 
 export function DiscoveryScoutLogo({ size = 24 }) {
+  // Faithful recreation of the discoveryos.xyz brand mark:
+  // white square, single diagonal "/" stroke in near-black
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <rect width="32" height="32" rx="7" fill="#1060E8" />
-      <circle cx="14" cy="14" r="6" stroke="white" strokeWidth="2.5" />
-      <path d="M19 19l5 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <rect width="32" height="32" rx="6" fill="#FFFFFF" />
+      <path d="M11 24L21 8" stroke="#0A0A0A" strokeWidth="3" strokeLinecap="round" />
     </svg>
   )
 }

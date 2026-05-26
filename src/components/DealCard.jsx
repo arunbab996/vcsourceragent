@@ -19,12 +19,6 @@ const SOURCE_LINK = {
   edgar:       'SEC EDGAR',
 }
 
-function scoreColor(n) {
-  if (n >= 8) return '#22C55E'
-  if (n >= 6) return '#EAB308'
-  return '#666'
-}
-
 function Signal({ label }) {
   return (
     <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] text-[#888] bg-[#1C1C1C] border border-white/[0.07] whitespace-nowrap">
@@ -64,13 +58,6 @@ export default function DealCard({ deal }) {
         className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.025] transition-colors group"
         onClick={() => setOpen(o => !o)}
       >
-        {/* Score */}
-        <div className="w-6 flex-shrink-0 pt-[3px] text-right">
-          <span className="text-[13px] font-semibold tabular-nums leading-none" style={{ color: scoreColor(scoring.score) }}>
-            {scoring.score}
-          </span>
-        </div>
-
         {/* Logo */}
         <div className="w-8 h-8 flex-shrink-0 rounded-md bg-[#1C1C1C] border border-white/[0.07] overflow-hidden flex items-center justify-center mt-0.5">
           {launch.thumbnail
@@ -93,11 +80,6 @@ export default function DealCard({ deal }) {
             {source === 'hnhiring' && (
               <span className="text-[10px] text-amber-700 bg-amber-950/30 border border-amber-900/30 px-1.5 py-px rounded">
                 Hiring
-              </span>
-            )}
-            {scoring.passToPartners && (
-              <span className="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-px rounded border border-blue-500/20">
-                ↑ Partners
               </span>
             )}
           </div>

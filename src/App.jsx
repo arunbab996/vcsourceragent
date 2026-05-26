@@ -9,6 +9,7 @@ import { runAgentPipeline } from './lib/agent'
 import { saveDeal, isSupabaseEnabled } from './lib/supabase'
 import { DiscoveryScoutLogo } from './components/Logos'
 import DealCard from './components/DealCard'
+import TableView from './components/TableView'
 import AgentStatusBar from './components/AgentStatusBar'
 import Sidebar from './components/Sidebar'
 import StatsBar from './components/StatsBar'
@@ -22,11 +23,11 @@ const SOURCES = [
   { id: 'github',      label: 'GitHub',        envKey: 'VITE_GITHUB_TOKEN', requires: !!GH_KEY },
   { id: 'yc',          label: 'YC',            envKey: null,                requires: true },
   { id: 'showhn',      label: 'Show HN',       envKey: null,                requires: true },
-  { id: 'hnhiring',    label: 'HN Hiring',     envKey: null,                requires: true },
+  { id: 'hnhiring',    label: 'HN Hiring',     envKey: null,                requires: false, comingSoon: true },
   { id: 'edgar',       label: 'SEC EDGAR',     envKey: null,                requires: false, comingSoon: true },
 ]
 
-const DEFAULT_FILTERS = { minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'score' }
+const DEFAULT_FILTERS = { minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'votes' }
 
 const norm = s => (s || '').toLowerCase().trim()
 
@@ -40,9 +41,9 @@ function applyFilters(deals, filters) {
       if (filters.signal   && !(d.enrichment?.notableSignals || []).some(s => norm(s) === norm(filters.signal))) return false
       return true
     })
-    .sort((a, b) => filters.sort === 'votes'
-      ? b.launch.votes - a.launch.votes
-      : b.scoring.score - a.scoring.score
+    .sort((a, b) => filters.sort === 'date'
+      ? new Date(b.launch.createdAt) - new Date(a.launch.createdAt)
+      : b.launch.votes - a.launch.votes
     )
 }
 
@@ -57,6 +58,7 @@ export default function App() {
   const [error, setError]           = useState(null)
   const [isRunning, setIsRunning]   = useState(false)
   const [savedCount, setSavedCount] = useState(0)
+  const [viewMode, setViewMode]     = useState('card') // 'card' | 'table'
 
   const toggleSource = id =>
     setSelectedSources(p => p.includes(id) ? p.filter(s => s !== id) : [...p, id])
@@ -274,16 +276,49 @@ export default function App() {
                   {filtered.length} of {deals.length} deals
                   {isRunning && <span className="text-blue-700 ml-2">· sourcing</span>}
                 </span>
+
+                {/* View toggle */}
+                <div className="flex items-center gap-0.5 bg-[#141414] border border-white/[0.06] rounded p-0.5">
+                  <button
+                    onClick={() => setViewMode('card')}
+                    title="Card view"
+                    className={`p-1 rounded transition-colors ${viewMode === 'card' ? 'bg-[#222] text-[#C8C8C8]' : 'text-[#555] hover:text-[#888]'}`}
+                  >
+                    {/* Card/list icon */}
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                      <rect x="1" y="2" width="14" height="3.5" rx="1" fill="currentColor" opacity=".9"/>
+                      <rect x="1" y="7" width="14" height="3.5" rx="1" fill="currentColor" opacity=".6"/>
+                      <rect x="1" y="12" width="14" height="2.5" rx="1" fill="currentColor" opacity=".35"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    title="Table view"
+                    className={`p-1 rounded transition-colors ${viewMode === 'table' ? 'bg-[#222] text-[#C8C8C8]' : 'text-[#555] hover:text-[#888]'}`}
+                  >
+                    {/* Table/grid icon */}
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                      <rect x="1" y="1" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".9"/>
+                      <rect x="8.5" y="1" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".9"/>
+                      <rect x="1" y="8.5" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".6"/>
+                      <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".6"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              <div className="border border-white/[0.05] rounded-md overflow-hidden">
-                {filtered.length === 0
-                  ? <p className="text-[12px] text-[#555] text-center py-16">No deals match the current filters.</p>
-                  : filtered.map(deal => (
-                      <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
-                    ))
-                }
-              </div>
+              {filtered.length === 0
+                ? <p className="text-[12px] text-[#555] text-center py-16">No deals match the current filters.</p>
+                : viewMode === 'table'
+                  ? <TableView deals={filtered} />
+                  : (
+                    <div className="border border-white/[0.05] rounded-md overflow-hidden">
+                      {filtered.map(deal => (
+                        <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
+                      ))}
+                    </div>
+                  )
+              }
             </>
           )}
         </main>
