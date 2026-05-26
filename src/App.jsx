@@ -3,9 +3,10 @@ import { fetchRecentLaunches } from './lib/productHunt'
 import { fetchRecentGithubRepos } from './lib/github'
 import { fetchRecentYCCompanies } from './lib/yc'
 import { fetchShowHNPosts } from './lib/showhn'
+import { fetchRecentFormD } from './lib/edgar'
 import { runAgentPipeline } from './lib/agent'
 import { saveDeal, isSupabaseEnabled } from './lib/supabase'
-import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, DiscoveryScoutLogo } from './components/Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, EdgarLogo, DiscoveryScoutLogo } from './components/Logos'
 import DealCard from './components/DealCard'
 import AgentStatusBar from './components/AgentStatusBar'
 import Sidebar from './components/Sidebar'
@@ -20,6 +21,7 @@ const SOURCES = [
   { id: 'github',      label: 'GitHub',        envKey: 'VITE_GITHUB_TOKEN', requires: !!GH_KEY },
   { id: 'yc',          label: 'YC',            envKey: null,                requires: true },
   { id: 'showhn',      label: 'Show HN',       envKey: null,                requires: true },
+  { id: 'edgar',       label: 'SEC EDGAR',     envKey: null,                requires: true },
 ]
 
 const DEFAULT_FILTERS = { minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'score' }
@@ -98,7 +100,7 @@ export default function App() {
       }
 
       if (selectedSources.includes('yc')) {
-        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching YC launches from HN…' }))
+        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching YC companies…' }))
         const items = await fetchRecentYCCompanies(6)
         setAgentState(s => ({ ...s, message: `${items.length} YC companies — filtering…` }))
         await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('yc'))
@@ -109,6 +111,13 @@ export default function App() {
         const items = await fetchShowHNPosts(3)
         setAgentState(s => ({ ...s, message: `${items.length} Show HN posts — filtering…` }))
         await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('showhn'))
+      }
+
+      if (selectedSources.includes('edgar')) {
+        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching SEC EDGAR Form D filings…' }))
+        const items = await fetchRecentFormD(7, 20)
+        setAgentState(s => ({ ...s, message: `${items.length} Form D filings — filtering…` }))
+        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('edgar'))
       }
 
       setAgentState(s => ({
@@ -139,21 +148,21 @@ export default function App() {
             <DiscoveryScoutLogo size={22} />
             <div className="flex items-baseline gap-1">
               <span className="text-[13px] font-semibold text-white tracking-tight">discovery</span>
-              <span className="text-[13px] text-[#333]">/</span>
-              <span className="text-[13px] font-medium text-[#666]">scout</span>
+              <span className="text-[13px] text-[#555]">/</span>
+              <span className="text-[13px] font-medium text-[#777]">scout</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {isSupabaseEnabled() && savedCount > 0 && (
-              <span className="text-[11px] text-[#2A6A3A]">{savedCount} saved</span>
+              <span className="text-[11px] text-emerald-700">{savedCount} saved</span>
             )}
             <button
               onClick={handleRun}
               disabled={isRunning || !OPENAI_KEY}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-all ${
                 isRunning
-                  ? 'bg-[#1A1A1A] text-[#444] cursor-not-allowed border border-white/[0.04]'
+                  ? 'bg-[#1A1A1A] text-[#555] cursor-not-allowed border border-white/[0.04]'
                   : 'bg-[#1060E8] hover:bg-[#1555D4] text-white'
               }`}
             >
@@ -186,7 +195,7 @@ export default function App() {
           <AgentStatusBar agentState={agentState} progress={progress} />
 
           {error && (
-            <div className="border border-red-900/30 bg-red-950/10 rounded px-3 py-2 text-[12px] text-[#A05050] mb-4">
+            <div className="border border-red-900/30 bg-red-950/10 rounded px-3 py-2 text-[12px] text-[#B06060] mb-4">
               {error}
             </div>
           )}
@@ -194,8 +203,8 @@ export default function App() {
           {/* Empty */}
           {!deals.length && !isRunning && agentState.status === 'idle' && (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center gap-2">
-              <span className="text-[13px] text-[#3A3A3A]">No deals yet</span>
-              <span className="text-[12px] text-[#2A2A2A] max-w-xs">
+              <span className="text-[13px] text-[#666]">No deals yet</span>
+              <span className="text-[12px] text-[#555] max-w-xs">
                 {OPENAI_KEY ? 'Select sources in the sidebar and run the pipeline.' : 'Add API keys to Vercel env vars and redeploy.'}
               </span>
             </div>
@@ -227,15 +236,15 @@ export default function App() {
               <StatsBar deals={deals} isRunning={isRunning} />
 
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] text-[#3A3A3A]">
+                <span className="text-[11px] text-[#666]">
                   {filtered.length} of {deals.length} deals
-                  {isRunning && <span className="text-blue-800 ml-2">· sourcing</span>}
+                  {isRunning && <span className="text-blue-700 ml-2">· sourcing</span>}
                 </span>
               </div>
 
               <div className="border border-white/[0.05] rounded-md overflow-hidden">
                 {filtered.length === 0
-                  ? <p className="text-[12px] text-[#3A3A3A] text-center py-16">No deals match the current filters.</p>
+                  ? <p className="text-[12px] text-[#555] text-center py-16">No deals match the current filters.</p>
                   : filtered.map(deal => (
                       <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
                     ))

@@ -1,19 +1,31 @@
 import { useState } from 'react'
-import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo } from './Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, EdgarLogo } from './Logos'
 import VerticalBadge from './VerticalBadge'
 
-const SOURCE_LOGO = { producthunt: ProductHuntLogo, github: GitHubLogo, yc: YCLogo, showhn: ShowHNLogo }
-const SOURCE_LINK = { producthunt: 'Product Hunt', github: 'GitHub', yc: 'HN Launch', showhn: 'Show HN' }
+const SOURCE_LOGO = {
+  producthunt: ProductHuntLogo,
+  github:      GitHubLogo,
+  yc:          YCLogo,
+  showhn:      ShowHNLogo,
+  edgar:       EdgarLogo,
+}
+const SOURCE_LINK = {
+  producthunt: 'Product Hunt',
+  github:      'GitHub',
+  yc:          'HN Launch',
+  showhn:      'Show HN',
+  edgar:       'SEC EDGAR',
+}
 
 function scoreColor(n) {
   if (n >= 8) return '#22C55E'
   if (n >= 6) return '#EAB308'
-  return '#4B5563'
+  return '#666'
 }
 
 function Signal({ label }) {
   return (
-    <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] text-[#6B6B6B] bg-[#1C1C1C] border border-white/[0.06] whitespace-nowrap">
+    <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] text-[#888] bg-[#1C1C1C] border border-white/[0.07] whitespace-nowrap">
       {label}
     </span>
   )
@@ -39,7 +51,7 @@ function LinkIcon() {
 export default function DealCard({ deal }) {
   const [open, setOpen] = useState(false)
   const { launch, enrichment, scoring, source, research } = deal
-  const Logo    = SOURCE_LOGO[source] || ProductHuntLogo
+  const Logo     = SOURCE_LOGO[source] || ProductHuntLogo
   const founders = (enrichment.founderNames || []).filter(n => n && n !== 'Unknown')
   const signals  = enrichment.notableSignals || []
 
@@ -61,7 +73,7 @@ export default function DealCard({ deal }) {
         <div className="w-8 h-8 flex-shrink-0 rounded-md bg-[#1C1C1C] border border-white/[0.07] overflow-hidden flex items-center justify-center mt-0.5">
           {launch.thumbnail
             ? <img src={launch.thumbnail} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
-            : <span className="text-[12px] font-semibold text-[#555]">{(enrichment.companyName || launch.name).charAt(0).toUpperCase()}</span>
+            : <span className="text-[12px] font-semibold text-[#666]">{(enrichment.companyName || launch.name).charAt(0).toUpperCase()}</span>
           }
         </div>
 
@@ -72,8 +84,15 @@ export default function DealCard({ deal }) {
             <span className="text-[13px] font-medium text-white leading-none">{enrichment.companyName}</span>
             <VerticalBadge vertical={enrichment.vertical} />
             {enrichment.stage && enrichment.stage !== 'Unknown' && (
-              <span className="text-[10px] text-[#555] bg-[#1A1A1A] border border-white/[0.05] px-1.5 py-px rounded">
+              <span className="text-[10px] text-[#666] bg-[#1A1A1A] border border-white/[0.06] px-1.5 py-px rounded">
                 {enrichment.stage}
+              </span>
+            )}
+            {launch.raiseAmount > 0 && source === 'edgar' && (
+              <span className="text-[10px] text-emerald-600 bg-emerald-950/30 border border-emerald-900/30 px-1.5 py-px rounded">
+                {launch.raiseAmount >= 1_000_000
+                  ? `$${(launch.raiseAmount / 1_000_000).toFixed(1)}M`
+                  : `$${Math.round(launch.raiseAmount / 1_000)}K`}
               </span>
             )}
             {scoring.passToPartners && (
@@ -84,16 +103,16 @@ export default function DealCard({ deal }) {
           </div>
 
           {/* Tagline */}
-          <p className="text-[12px] text-[#8C8C8C] mt-1 line-clamp-1 leading-snug">{enrichment.tagline}</p>
+          <p className="text-[12px] text-[#A0A0A0] mt-1 line-clamp-1 leading-snug">{enrichment.tagline}</p>
 
           {/* Meta row */}
           <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1.5">
             {founders.length > 0 && (
-              <span className="text-[11px] text-[#7A7A7A]">{founders.join(', ')}</span>
+              <span className="text-[11px] text-[#909090]">{founders.join(', ')}</span>
             )}
-            {founders.length > 0 && enrichment.location && <span className="text-[#2E2E2E]">·</span>}
+            {founders.length > 0 && enrichment.location && <span className="text-[#333]">·</span>}
             {enrichment.location && (
-              <span className="text-[11px] text-[#5A5A5A]">{enrichment.location}</span>
+              <span className="text-[11px] text-[#707070]">{enrichment.location}</span>
             )}
             {signals.map(s => <Signal key={s} label={s} />)}
           </div>
@@ -101,13 +120,13 @@ export default function DealCard({ deal }) {
 
         {/* Right meta */}
         <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
-          <span className="text-[#555] group-hover:text-[#777] transition-colors">
+          <span className="text-[#666] group-hover:text-[#888] transition-colors">
             <Logo size={14} />
           </span>
           {launch.votes > 0 && (
-            <span className="text-[11px] text-[#4A4A4A] tabular-nums">{launch.votes}</span>
+            <span className="text-[11px] text-[#555] tabular-nums">{launch.votes}</span>
           )}
-          <span className="text-[#333] group-hover:text-[#555] transition-colors">
+          <span className="text-[#444] group-hover:text-[#666] transition-colors">
             <ChevronIcon open={open} />
           </span>
         </div>
@@ -121,13 +140,13 @@ export default function DealCard({ deal }) {
           <div className="flex gap-4">
             {launch.url && (
               <a href={launch.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[11px] text-[#6B6B6B] hover:text-[#E2E2E2] transition-colors">
+                className="flex items-center gap-1 text-[11px] text-[#777] hover:text-[#E8E8E8] transition-colors">
                 {SOURCE_LINK[source] || 'View'} <LinkIcon />
               </a>
             )}
             {launch.website && (
               <a href={launch.website} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[11px] text-[#6B6B6B] hover:text-[#E2E2E2] transition-colors">
+                className="flex items-center gap-1 text-[11px] text-[#777] hover:text-[#E8E8E8] transition-colors">
                 Website <LinkIcon />
               </a>
             )}
@@ -136,15 +155,15 @@ export default function DealCard({ deal }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {enrichment.enrichmentNotes && (
               <Detail title="Notes">
-                <p className="text-[12px] text-[#8A8A8A] leading-relaxed">{enrichment.enrichmentNotes}</p>
+                <p className="text-[12px] text-[#A0A0A0] leading-relaxed">{enrichment.enrichmentNotes}</p>
               </Detail>
             )}
             <Detail title="Score reasoning">
-              <p className="text-[12px] text-[#8A8A8A] leading-relaxed">{scoring.scoreReason}</p>
+              <p className="text-[12px] text-[#A0A0A0] leading-relaxed">{scoring.scoreReason}</p>
               {scoring.redFlags?.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {scoring.redFlags.map((f, i) => (
-                    <li key={i} className="text-[11px] text-[#7A4040] flex items-start gap-1.5">
+                    <li key={i} className="text-[11px] text-[#8A4040] flex items-start gap-1.5">
                       <span className="flex-shrink-0">↳</span>{f}
                     </li>
                   ))}
@@ -155,7 +174,7 @@ export default function DealCard({ deal }) {
 
           {enrichment.tractionSignals && (
             <Detail title="Traction">
-              <p className="text-[12px] text-[#8A8A8A] leading-relaxed">{enrichment.tractionSignals}</p>
+              <p className="text-[12px] text-[#A0A0A0] leading-relaxed">{enrichment.tractionSignals}</p>
             </Detail>
           )}
 
@@ -165,14 +184,14 @@ export default function DealCard({ deal }) {
                 {research.founders.map((f, i) => (
                   <div key={i}>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[12px] font-medium text-[#D4D4D4]">{f.name}</span>
-                      <span className={`text-[10px] ${f.confidence === 'high' ? 'text-emerald-700' : f.confidence === 'medium' ? 'text-amber-800' : 'text-[#3A3A3A]'}`}>
+                      <span className="text-[12px] font-medium text-[#D8D8D8]">{f.name}</span>
+                      <span className={`text-[10px] ${f.confidence === 'high' ? 'text-emerald-700' : f.confidence === 'medium' ? 'text-amber-700' : 'text-[#444]'}`}>
                         {f.confidence}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#666] leading-relaxed">{f.background}</p>
+                    <p className="text-[11px] text-[#808080] leading-relaxed">{f.background}</p>
                     {f.priorStartups?.length > 0 && (
-                      <p className="text-[11px] text-[#4A4A4A] mt-0.5">Prior: {f.priorStartups.join(', ')}</p>
+                      <p className="text-[11px] text-[#666] mt-0.5">Prior: {f.priorStartups.join(', ')}</p>
                     )}
                   </div>
                 ))}
@@ -188,7 +207,7 @@ export default function DealCard({ deal }) {
 function Detail({ title, children }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-[#484848] uppercase tracking-widest mb-1.5">{title}</p>
+      <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest mb-1.5">{title}</p>
       {children}
     </div>
   )

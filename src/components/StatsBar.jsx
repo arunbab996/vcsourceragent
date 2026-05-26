@@ -1,3 +1,11 @@
+const SOURCE_ABBR = {
+  producthunt: 'PH',
+  github:      'GH',
+  yc:          'YC',
+  showhn:      'HN',
+  edgar:       'SEC',
+}
+
 export default function StatsBar({ deals, isRunning }) {
   if (!deals.length) return null
 
@@ -8,21 +16,21 @@ export default function StatsBar({ deals, isRunning }) {
 
   return (
     <div className="flex items-center gap-6 px-1 mb-4 border-b border-white/[0.04] pb-3">
-      <Stat label="Total" value={deals.length} sub={isRunning ? 'loading' : null} />
+      <Stat label="Total"           value={deals.length} sub={isRunning ? 'loading' : null} />
       <Divider />
-      <Stat label="Avg score" value={avg} />
+      <Stat label="Avg score"       value={avg} />
       <Divider />
-      <Stat label="Score 8+" value={highConviction} color="#22C55E" />
+      <Stat label="Score 8+"        value={highConviction} color="#22C55E" />
       <Divider />
-      <Stat label="Pass to partners" value={partners} color="#A78BFA" />
+      <Stat label="Pass to partners" value={partners}      color="#60A5FA" />
       <Divider />
       <div className="flex items-center gap-3 ml-auto">
         {Object.entries(bySource).map(([src, n]) => (
-          <span key={src} className="text-[11px] text-[#555]">
-            <span className="text-[#737373]">{n}</span> {src === 'producthunt' ? 'PH' : src === 'github' ? 'GH' : 'YC'}
+          <span key={src} className="text-[11px] text-[#666]">
+            <span className="text-[#909090]">{n}</span> {SOURCE_ABBR[src] || src}
           </span>
         ))}
-        {isRunning && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />}
+        {isRunning && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
       </div>
     </div>
   )
@@ -31,10 +39,10 @@ export default function StatsBar({ deals, isRunning }) {
 function Stat({ label, value, color, sub }) {
   return (
     <div>
-      <span className="text-[11px] text-[#555] block">{label}</span>
-      <span className="text-[15px] font-semibold tabular" style={color ? { color } : {}}>
+      <span className="text-[11px] text-[#666] block">{label}</span>
+      <span className="text-[15px] font-semibold tabular" style={color ? { color } : { color: '#E8E8E8' }}>
         {value}
-        {sub && <span className="text-[10px] text-[#444] ml-1 font-normal">{sub}</span>}
+        {sub && <span className="text-[10px] text-[#555] ml-1 font-normal">{sub}</span>}
       </span>
     </div>
   )

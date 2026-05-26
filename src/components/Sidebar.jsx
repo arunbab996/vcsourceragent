@@ -1,6 +1,12 @@
-import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo } from './Logos'
+import { ProductHuntLogo, GitHubLogo, YCLogo, ShowHNLogo, EdgarLogo } from './Logos'
 
-const LOGO = { producthunt: ProductHuntLogo, github: GitHubLogo, yc: YCLogo, showhn: ShowHNLogo }
+const LOGO = {
+  producthunt: ProductHuntLogo,
+  github:      GitHubLogo,
+  yc:          YCLogo,
+  showhn:      ShowHNLogo,
+  edgar:       EdgarLogo,
+}
 
 export default function Sidebar({ sources, selectedSources, onToggleSource, filters, onFiltersChange, deals, isRunning }) {
   const verticals = [...new Set(deals.map(d => d.enrichment?.vertical).filter(Boolean))].sort()
@@ -12,10 +18,10 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
 
       {/* Sources */}
       <div>
-        <p className="text-[10px] font-semibold text-[#404040] uppercase tracking-widest mb-2">Sources</p>
+        <p className="text-[10px] font-semibold text-[#606060] uppercase tracking-widest mb-2">Sources</p>
         <div className="space-y-0.5">
           {sources.map(src => {
-            const Logo = LOGO[src.id]
+            const Logo   = LOGO[src.id]
             const active = selectedSources.includes(src.id)
             return (
               <button
@@ -24,18 +30,18 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
                 disabled={!src.requires}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-colors ${
                   !src.requires
-                    ? 'text-[#333] cursor-not-allowed'
+                    ? 'text-[#444] cursor-not-allowed'
                     : active
-                    ? 'bg-white/[0.04] text-[#E2E2E2]'
-                    : 'text-[#737373] hover:text-[#E2E2E2] hover:bg-white/[0.03]'
+                    ? 'bg-white/[0.05] text-[#E8E8E8]'
+                    : 'text-[#888] hover:text-[#E8E8E8] hover:bg-white/[0.03]'
                 }`}
               >
                 <span className={`flex-shrink-0 ${!src.requires ? 'opacity-30' : ''}`}>
-                  <Logo size={14} />
+                  {Logo && <Logo size={14} />}
                 </span>
                 <span>{src.label}</span>
-                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
-                {!src.requires && <span className="ml-auto text-[10px] text-[#333]">no key</span>}
+                {active    && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
+                {!src.requires && <span className="ml-auto text-[10px] text-[#555]">no key</span>}
               </button>
             )
           })}
@@ -47,9 +53,9 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
       {/* Filters */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-semibold text-[#404040] uppercase tracking-widest">Filters</p>
+          <p className="text-[10px] font-semibold text-[#606060] uppercase tracking-widest">Filters</p>
           {anyFilter && (
-            <button onClick={clear} className="text-[10px] text-[#555] hover:text-[#E2E2E2] transition-colors">
+            <button onClick={clear} className="text-[10px] text-[#666] hover:text-[#E8E8E8] transition-colors">
               Clear
             </button>
           )}
@@ -65,7 +71,7 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
                   className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                     filters.minScore === n
                       ? 'bg-blue-600 text-white'
-                      : 'bg-[#1C1C1C] text-[#737373] hover:text-[#E2E2E2] border border-white/[0.06]'
+                      : 'bg-[#1C1C1C] text-[#888] hover:text-[#E8E8E8] border border-white/[0.06]'
                   }`}
                 >
                   {n === 1 ? 'All' : `${n}+`}
@@ -80,6 +86,8 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
               <option value="producthunt">Product Hunt</option>
               <option value="github">GitHub</option>
               <option value="yc">YC</option>
+              <option value="showhn">Show HN</option>
+              <option value="edgar">SEC EDGAR</option>
             </Select>
           </Field>
 
@@ -126,7 +134,7 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
 function Field({ label, children }) {
   return (
     <div>
-      <p className="text-[10px] text-[#404040] mb-1.5">{label}</p>
+      <p className="text-[10px] text-[#666] mb-1.5">{label}</p>
       {children}
     </div>
   )
@@ -137,7 +145,7 @@ function Select({ value, onChange, children }) {
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full bg-[#1A1A1A] border border-white/[0.06] text-[#737373] text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-blue-600/50 focus:text-[#E2E2E2] transition-colors"
+      className="w-full bg-[#1A1A1A] border border-white/[0.07] text-[#999] text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-blue-600/50 focus:text-[#E8E8E8] transition-colors"
     >
       {children}
     </select>

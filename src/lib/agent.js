@@ -9,7 +9,9 @@ function createClient(apiKey) {
 
 // ─── Step 1: Filter ────────────────────────────────────────────────────────────
 export async function filterLaunch(client, launch) {
-  const makerHeadlines = launch.makers.map(m => `${m.name} (${m.headline || 'no headline'})`).join(', ')
+  const makerHeadlines = launch.makers
+    .map(m => `${m.name} (${m.headline || 'no headline'})`)
+    .join(', ')
 
   const prompt = `You are a VC analyst screening Product Hunt launches for early-stage startup investment opportunities.
 
@@ -63,10 +65,10 @@ export async function researchFounder(client, launch) {
     ? launch.makers
         .map(m => [
           `Name: ${m.name}`,
-          m.username ? `PH username: @${m.username}` : null,
-          m.twitter ? `Twitter: @${m.twitter}` : null,
+          m.username ? `PH profile: https://www.producthunt.com/@${m.username}` : null,
+          m.twitter  ? `Twitter: @${m.twitter}` : null,
           m.headline ? `Headline: ${m.headline}` : null,
-          m.website ? `Website: ${m.website}` : null,
+          m.website  ? `Website: ${m.website}` : null,
         ].filter(Boolean).join(' | '))
         .join('\n')
     : null
@@ -120,6 +122,11 @@ Respond with JSON only:
 
 // ─── Step 3: Enrich ────────────────────────────────────────────────────────────
 export async function enrichDeal(client, launch, research) {
+  // Pass maker headline data so GPT can correctly detect Solo Founder vs Co-Founder
+  const makerContext = launch.makers.length
+    ? `Known team (from source):\n${launch.makers.map(m => `- ${m.name} | ${m.headline || 'no title'}`).join('\n')}`
+    : ''
+
   const prompt = `You are a VC analyst creating a structured deal profile for an early-stage startup.
 
 Launch data:
@@ -129,6 +136,7 @@ Description: ${launch.description}
 Topics: ${launch.topics.join(', ')}
 Votes: ${launch.votes}
 URL: ${launch.url}
+${makerContext}
 
 Founder research:
 ${JSON.stringify(research, null, 2)}
@@ -137,7 +145,7 @@ Instructions:
 - "stage": one of exactly "Pre-seed", "Seed", "Series A", "Unknown"
 - "vertical": most specific category (e.g. "AI DevTools", "B2B SaaS", "FinTech", "HealthTech", "Consumer App", "Infrastructure", "Marketplace", "Productivity")
 - "notableSignals": flat unique list using only these exact values: "Solo Founder", "Repeat Founder", "Ex-FAANG", "YC", "Academic", "Operator", "Early Traction"
-  - Add "Solo Founder" if there is exactly 1 founder in the research
+  - Add "Solo Founder" ONLY if there is exactly 1 person on the founding team AND their title does NOT say "Co-Founder". If any person's headline or title includes "Co-Founder", there is more than one founder and you must NOT add "Solo Founder".
   - Add "Early Traction" if votes > 200 or description mentions customers/revenue
 
 Respond with JSON only:

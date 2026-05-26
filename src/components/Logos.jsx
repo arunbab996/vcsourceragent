@@ -34,6 +34,18 @@ export function ShowHNLogo({ size = 16 }) {
   )
 }
 
+export function EdgarLogo({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="5" fill="#0B1E36" />
+      {/* Document icon */}
+      <rect x="10" y="7" width="17" height="22" rx="2" fill="none" stroke="#4A90D9" strokeWidth="2" />
+      <path d="M24 7v6h3" stroke="#4A90D9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 17h12M14 21h12M14 25h7" stroke="#4A90D9" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function DiscoveryScoutLogo({ size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">

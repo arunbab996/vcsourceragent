@@ -19,10 +19,10 @@ export default function AgentStatusBar({ agentState, progress }) {
           )}
           {done && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
           {errored && <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
-          <span className="text-[12px] text-[#737373] truncate">{message}</span>
+          <span className="text-[12px] text-[#A0A0A0] truncate">{message}</span>
         </div>
         {dealsFound > 0 && (
-          <span className="text-[11px] text-[#555] tabular flex-shrink-0 ml-4">
+          <span className="text-[11px] text-[#666] tabular flex-shrink-0 ml-4">
             {dealsProcessed}/{dealsFound}
           </span>
         )}
@@ -50,7 +50,7 @@ export default function AgentStatusBar({ agentState, progress }) {
           const isCurrent = i === currentIdx
           return (
             <span key={step} className={`text-[10px] ${
-              isPast || done ? 'text-blue-400' : isCurrent ? 'text-[#737373]' : 'text-[#333]'
+              isPast || done ? 'text-blue-400' : isCurrent ? 'text-[#909090]' : 'text-[#555]'
             }`}>
               {STEP_LABEL[step]}
             </span>
