@@ -33,7 +33,7 @@ const LAUNCHES_QUERY = `
             websiteUrl
             profileImage
           }
-          comments(first: 5, order: OLDEST) {
+          comments(first: 5) {
             edges {
               node {
                 body
