@@ -34,6 +34,15 @@ const LAUNCHES_QUERY = `
             websiteUrl
             profileImage
           }
+          user {
+            id
+            name
+            username
+            headline
+            twitterUsername
+            websiteUrl
+            profileImage
+          }
         }
       }
     }
@@ -54,6 +63,59 @@ const shapeMaker = u => ({
   website:  u.websiteUrl     || '',
   avatar:   u.profileImage   || null,
 })
+
+// Convert a PH username handle to a readable display name.
+// "priyanshu_ratnakar" → "Priyanshu Ratnakar"
+const usernameToName = u =>
+  (u || '').split(/[_\-.]/).filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ') || null
+
+// Build the makers list for a post node.
+// Priority: registered makers with real name → registered makers by username
+// → post submitter (node.user) by name → post submitter by username.
+function resolveMakers(node) {
+  const candidates = [
+    ...(node.makers || []),
+  ]
+
+  // Try to get at least one real name from the makers list
+  const namedMakers = candidates
+    .map(u => ({ ...shapeMaker(u), _derived: false }))
+    .filter(m => m.name)
+
+  if (namedMakers.length) return namedMakers
+
+  // Try deriving a name from maker usernames
+  const derivedMakers = candidates
+    .map(u => {
+      const name = isRedacted(u.username) ? null : usernameToName(u.username)
+      return name ? { ...shapeMaker(u), name, _derived: true } : null
+    })
+    .filter(Boolean)
+
+  if (derivedMakers.length) return derivedMakers
+
+  // Fall back to the post submitter (almost always the founder)
+  const submitter = node.user
+  if (!submitter) return []
+
+  const submitterName = isRedacted(submitter.name)
+    ? (isRedacted(submitter.username) ? null : usernameToName(submitter.username))
+    : submitter.name
+
+  if (!submitterName) return []
+
+  return [{
+    id:       submitter.id        || '',
+    name:     submitterName,
+    username: isRedacted(submitter.username) ? '' : (submitter.username || ''),
+    headline: isRedacted(submitter.headline) ? '' : (submitter.headline || ''),
+    twitter:  submitter.twitterUsername || '',
+    website:  submitter.websiteUrl || '',
+    avatar:   submitter.profileImage || null,
+  }]
+}
 
 // ── Page scraper ──────────────────────────────────────────────────────────────
 // Fetches the PH product page and extracts the maker name(s) from
@@ -182,9 +244,10 @@ export async function fetchRecentLaunches(apiKey, hoursBack = 48, limit = 30) {
     createdAt:   node.createdAt,
     thumbnail:   node.thumbnail?.url || null,
     topics:      (node.topics?.edges || []).map(e => e.node.name),
-    // Keep whatever non-redacted makers came from the API (often empty).
-    // The agent pipeline will call scrapeMakerNames() for posts that still
-    // have no makers after this initial fetch.
-    makers: (node.makers || []).map(shapeMaker).filter(m => m.name),
+    // Try makers first. If all names are redacted, fall back to the post
+    // submitter (node.user) — the person who posted to PH is almost always
+    // a founder. We derive a readable name from the username handle when
+    // the name field itself is redacted.
+    makers: resolveMakers(node),
   }))
 }
