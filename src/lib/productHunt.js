@@ -39,10 +39,25 @@ const LAUNCHES_QUERY = `
   }
 `
 
+// PH API returns '[REDACTED]' for maker names when the token lacks PII scope.
+// Username (e.g. "priyanshu_ratnakar") is always public — derive a readable
+// display name from it as fallback.
+const deriveDisplayName = (name, username) => {
+  const isRedacted = !name || /^\[?redacted\]?$/i.test(name.trim())
+  if (!isRedacted) return name
+  if (!username) return null
+  // "priyanshu_ratnakar" → "Priyanshu Ratnakar"
+  return username
+    .split(/[_\-.]/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
+
 // Shape a PH user/maker object into our standard maker format
 const shapeMaker = u => ({
   id:       u.id,
-  name:     u.name,
+  name:     deriveDisplayName(u.name, u.username),
   username: u.username         || '',
   headline: u.headline         || '',
   twitter:  u.twitterUsername  || '',
