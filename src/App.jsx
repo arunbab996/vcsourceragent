@@ -23,7 +23,7 @@ const SOURCES = [
   { id: 'yc',          label: 'YC',            envKey: null,                requires: true },
   { id: 'showhn',      label: 'Show HN',       envKey: null,                requires: true },
   { id: 'hnhiring',    label: 'HN Hiring',     envKey: null,                requires: true },
-  { id: 'edgar',       label: 'SEC EDGAR',     envKey: null,                requires: true },
+  { id: 'edgar',       label: 'SEC EDGAR',     envKey: null,                requires: false, comingSoon: true },
 ]
 
 const DEFAULT_FILTERS = { minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'score' }

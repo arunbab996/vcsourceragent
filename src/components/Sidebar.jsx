@@ -24,25 +24,33 @@ export default function Sidebar({ sources, selectedSources, onToggleSource, filt
           {sources.map(src => {
             const Logo   = LOGO[src.id]
             const active = selectedSources.includes(src.id)
+            const disabled = src.comingSoon || !src.requires
             return (
               <button
                 key={src.id}
-                onClick={() => !isRunning && src.requires && onToggleSource(src.id)}
-                disabled={!src.requires}
+                onClick={() => !isRunning && !disabled && onToggleSource(src.id)}
+                disabled={disabled}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-colors ${
-                  !src.requires
-                    ? 'text-[#444] cursor-not-allowed'
+                  disabled
+                    ? 'text-[#3A3A3A] cursor-not-allowed'
                     : active
                     ? 'bg-white/[0.05] text-[#E8E8E8]'
                     : 'text-[#888] hover:text-[#E8E8E8] hover:bg-white/[0.03]'
                 }`}
               >
-                <span className={`flex-shrink-0 ${!src.requires ? 'opacity-30' : ''}`}>
+                <span className={`flex-shrink-0 ${disabled ? 'opacity-20' : ''}`}>
                   {Logo && <Logo size={14} />}
                 </span>
                 <span>{src.label}</span>
-                {active    && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
-                {!src.requires && <span className="ml-auto text-[10px] text-[#555]">no key</span>}
+                {active && !disabled && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
+                {src.comingSoon && (
+                  <span className="ml-auto text-[9px] font-medium text-[#444] bg-[#1A1A1A] border border-white/[0.05] px-1.5 py-px rounded tracking-wide">
+                    soon
+                  </span>
+                )}
+                {!src.comingSoon && !src.requires && (
+                  <span className="ml-auto text-[10px] text-[#555]">no key</span>
+                )}
               </button>
             )
           })}

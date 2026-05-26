@@ -13,24 +13,41 @@ export async function filterLaunch(client, launch) {
     .map(m => `${m.name} (${m.headline || 'no headline'})`)
     .join(', ')
 
-  const prompt = `You are a VC analyst screening Product Hunt launches for early-stage startup investment opportunities.
+  const isHiring = launch.topics?.includes('Hiring')
+
+  const sourceContext = isHiring
+    ? `This entry is a job posting from the HN "Who is Hiring?" thread — a company looking for engineers.`
+    : `This entry is a product launch from Product Hunt, GitHub, or YC.`
+
+  const hiringExtraRejects = isHiring ? `
+- Any company that explicitly mentions raising Series A, Series B, or later rounds
+- Any company that describes having more than 30 employees or a large team
+- Any company that sounds like it has been operating for 3+ years
+- Companies that appear to be profitable/bootstrapped for many years (not VC-relevant)` : ''
+
+  const hiringAcceptNote = isHiring
+    ? `For hiring posts: accept ONLY if the company is clearly pre-seed or seed stage, founded recently (last 1-2 years), and shows signals of being early-stage (small team, just getting started, building v1, recent launch, YC/accelerator mention).`
+    : `ACCEPT only if:
+- It looks like a brand-new company or product you have NOT seen before
+- At least one maker is clearly an independent founder (not employed at a big company)
+- There is a plausible B2B SaaS, AI, consumer app, marketplace, or dev tools business here
+- The founding team is small (1-4 people)`
+
+  const prompt = `You are a VC analyst screening startups for early-stage investment opportunities.
 
 Your job is to find GENUINE EARLY-STAGE STARTUPS — companies that are 0-18 months old, pre-seed to seed stage, with a small founding team.
+
+Source context: ${sourceContext}
 
 HARD REJECT — exclude immediately:
 - Products from Big Tech or any publicly traded company (Google/Gemini, Microsoft/Copilot, Apple, Meta, Amazon, Salesforce, Adobe, etc.)
 - Products from well-known funded startups — if you recognise the company name as already established (Mintlify, Notion, Linear, Vercel, Figma, Loom, etc.), reject it
-- Version updates or feature launches of existing products (e.g. "Gemini 2.0 now supports video" is a Google feature drop, not a startup)
+- Version updates or feature launches of existing products
 - Products where a maker's headline says they work at a large company ("Software Engineer at Google", "PM at Meta")
 - Side projects, hobby tools, open-source libraries with no commercial model
-- Newsletters, personal portfolios, content aggregators, browser extensions with no startup behind them
-- Products with no human maker listed
+- Newsletters, personal portfolios, content aggregators, browser extensions with no startup behind them${hiringExtraRejects}
 
-ACCEPT only if:
-- It looks like a brand-new company or product you have NOT seen before
-- At least one maker is clearly an independent founder (not employed at a big company)
-- There is a plausible B2B SaaS, AI, consumer app, marketplace, or dev tools business here
-- The founding team is small (1-4 people)
+${hiringAcceptNote}
 
 Launch data:
 Name: ${launch.name}
@@ -38,7 +55,7 @@ Tagline: ${launch.tagline}
 Description: ${launch.description}
 Topics: ${launch.topics.join(', ')}
 Votes: ${launch.votes}
-Makers: ${makerHeadlines}
+${makerHeadlines ? `Makers: ${makerHeadlines}` : ''}
 
 Think carefully: do you recognise "${launch.name}" as an already established product or company? If yes, reject it.
 

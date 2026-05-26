@@ -21,12 +21,22 @@ function cleanHtml(html = '') {
     .trim()
 }
 
+// Reject posts that are obviously Series A+ or established companies.
+// Catches: "raised our Series A", "$20M round", "250 employees", etc.
+const LATE_STAGE_RE = /\b(series [abc-z]|series-[abc-z]|\$[1-9]\d+\s*m(?:illion)?\s+(?:raise|round|series|funding|seed\s+extension)|\braised\s+\$[2-9]\d|\bfunded\s+\$[2-9]\d|\b[5-9]\d\s+(?:people|employees|engineers)\b|\b[1-9]\d{2,}\s+(?:people|employees|engineers)\b|post-series|series b|series c)\b/i
+
+// Pre-filter: return true if the post looks like an early-stage company
+const isEarlyStage = text => !LATE_STAGE_RE.test(text)
+
 // Parse one hiring comment into a launch-shaped object.
 // Hiring posts are usually: "Company | Location | Role | Remote?"
 function parseComment(item) {
   if (!item?.text || item.dead || item.deleted) return null
   const text = cleanHtml(item.text)
   if (text.length < 60) return null
+
+  // Reject late-stage companies before any further processing
+  if (!isEarlyStage(text)) return null
 
   const firstLine = text.split('\n')[0].trim()
   const parts = firstLine.split('|').map(s => s.trim()).filter(Boolean)
