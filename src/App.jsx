@@ -220,7 +220,7 @@ export default function App() {
             <div className="flex items-center gap-2.5">
               <DiscoveryScoutLogo size={22} />
               <div className="flex items-baseline gap-1">
-                <span className="text-[13px] font-semibold text-white tracking-tight">discovery</span>
+                <span className="text-[13px] font-semibold text-white tracking-tight">discoveryos</span>
                 <span className="text-[13px] text-[#555]">/</span>
                 <span className="text-[13px] font-medium text-[#777]">scout</span>
               </div>

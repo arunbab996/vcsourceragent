@@ -182,7 +182,7 @@ export default function PipelineHero({ isRunning, onRun, disabled, agentState })
           <rect width="32" height="32" rx="6" fill="#FFFFFF"/>
           <path d="M11 24L21 8" stroke="#0A0A0A" strokeWidth="3" strokeLinecap="round"/>
         </svg>
-        <span style={{ color: '#DDDDDD', fontSize: 13, fontWeight: 600, fontFamily: 'system-ui,sans-serif' }}>discovery</span>
+        <span style={{ color: '#DDDDDD', fontSize: 13, fontWeight: 600, fontFamily: 'system-ui,sans-serif' }}>discoveryos</span>
         <span style={{ color: '#444', fontSize: 13 }}>/</span>
         <span style={{ color: '#555', fontSize: 13, fontFamily: 'system-ui,sans-serif' }}>scout</span>
       </div>
