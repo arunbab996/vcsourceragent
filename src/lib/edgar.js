@@ -106,25 +106,31 @@ async function fetchOneFiling(hit) {
   return parseFormDXml(text, accession, cik)
 }
 
-// Main export — fetch recent Form D equity filings for tech companies
+// Main export — fetch recent Form D equity filings for tech companies.
+// Returns [] on any network or CORS failure so the pipeline never crashes.
 export async function fetchRecentFormD(daysBack = 7, limit = 20) {
   const startDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0]
 
-  // Full-text search for "Technology" in Form D filings.
-  // The industryGroupType field in the XML contains the word "Technology"
-  // for tech companies, so this pre-filters well before XML parsing.
-  const searchUrl =
-    `${EFTS}?q=%22Technology%22+OR+%22Computers%22+OR+%22Internet%22` +
-    `&forms=D&dateRange=custom&startdt=${startDate}`
+  // Simple date+form filter only — no complex query that could break CORS
+  const searchUrl = `${EFTS}?q=%22%22&forms=D&dateRange=custom&startdt=${startDate}`
 
-  const res = await fetch(searchUrl)
-  if (!res.ok) throw new Error(`EDGAR search error ${res.status}`)
+  let hits = []
+  try {
+    const res = await fetch(searchUrl)
+    if (!res.ok) {
+      console.warn(`EDGAR search returned ${res.status} — skipping`)
+      return []
+    }
+    const data = await res.json()
+    hits = data.hits?.hits || []
+  } catch (err) {
+    // CORS or network failure — log and return empty so pipeline continues
+    console.warn('EDGAR fetch failed (likely CORS):', err.message)
+    return []
+  }
 
-  const data = await res.json()
-  const hits  = (data.hits?.hits || [])
-
-  // Process in parallel batches of 5 to respect SEC's 10 req/sec limit
+  // Process in parallel batches of 5 to respect SEC's 10 req/sec guideline
   const results = []
   for (let i = 0; i < hits.length && results.length < limit; i += 5) {
     const batch = hits.slice(i, i + 5)

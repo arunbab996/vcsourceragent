@@ -84,47 +84,70 @@ export default function App() {
       }
     }
 
+    // Per-source wrapper — a single source failing won't kill the whole pipeline
+    const sourceErrors = []
+    const runSource = async (label, fn) => {
+      try {
+        await fn()
+      } catch (err) {
+        console.error(`[${label}] source error:`, err)
+        sourceErrors.push(`${label}: ${err.message}`)
+      }
+    }
+
     try {
       if (selectedSources.includes('producthunt') && PH_KEY) {
-        setAgentState({ status: 'discover', message: 'Fetching Product Hunt launches…', dealsFound: 0, dealsProcessed: 0 })
-        const items = await fetchRecentLaunches(PH_KEY, 48, 30)
-        setAgentState(s => ({ ...s, message: `${items.length} PH launches — filtering…` }))
-        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('producthunt'))
+        await runSource('Product Hunt', async () => {
+          setAgentState({ status: 'discover', message: 'Fetching Product Hunt launches…', dealsFound: 0, dealsProcessed: 0 })
+          const items = await fetchRecentLaunches(PH_KEY, 48, 30)
+          setAgentState(s => ({ ...s, message: `${items.length} PH launches — filtering…` }))
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('producthunt'))
+        })
       }
 
       if (selectedSources.includes('github') && GH_KEY) {
-        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching GitHub repos…' }))
-        const items = await fetchRecentGithubRepos(GH_KEY, 48, 30)
-        setAgentState(s => ({ ...s, message: `${items.length} repos — filtering…` }))
-        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('github'))
+        await runSource('GitHub', async () => {
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching GitHub repos…' }))
+          const items = await fetchRecentGithubRepos(GH_KEY, 48, 30)
+          setAgentState(s => ({ ...s, message: `${items.length} repos — filtering…` }))
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('github'))
+        })
       }
 
       if (selectedSources.includes('yc')) {
-        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching YC companies…' }))
-        const items = await fetchRecentYCCompanies(6)
-        setAgentState(s => ({ ...s, message: `${items.length} YC companies — filtering…` }))
-        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('yc'))
+        await runSource('YC', async () => {
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching YC companies…' }))
+          const items = await fetchRecentYCCompanies(6)
+          setAgentState(s => ({ ...s, message: `${items.length} YC companies — filtering…` }))
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('yc'))
+        })
       }
 
       if (selectedSources.includes('showhn')) {
-        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching Show HN posts…' }))
-        const items = await fetchShowHNPosts(3)
-        setAgentState(s => ({ ...s, message: `${items.length} Show HN posts — filtering…` }))
-        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('showhn'))
+        await runSource('Show HN', async () => {
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching Show HN posts…' }))
+          const items = await fetchShowHNPosts(3)
+          setAgentState(s => ({ ...s, message: `${items.length} Show HN posts — filtering…` }))
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('showhn'))
+        })
       }
 
       if (selectedSources.includes('edgar')) {
-        setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching SEC EDGAR Form D filings…' }))
-        const items = await fetchRecentFormD(7, 20)
-        setAgentState(s => ({ ...s, message: `${items.length} Form D filings — filtering…` }))
-        await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('edgar'))
+        await runSource('SEC EDGAR', async () => {
+          setAgentState(s => ({ ...s, status: 'discover', message: 'Fetching SEC EDGAR Form D filings…' }))
+          const items = await fetchRecentFormD(7, 20)
+          setAgentState(s => ({ ...s, message: `${items.length} Form D filings — filtering…` }))
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('edgar'))
+        })
       }
 
+      const errNote = sourceErrors.length ? ` · ${sourceErrors.length} source error(s) — check console` : ''
       setAgentState(s => ({
         ...s, status: 'done',
-        message: `${total} deals sourced${isSupabaseEnabled() ? ` · ${savedCount} saved` : ''}`,
+        message: `${total} deals sourced${isSupabaseEnabled() ? ` · ${savedCount} saved` : ''}${errNote}`,
         dealsProcessed: total,
       }))
+      if (sourceErrors.length) setError(sourceErrors.join(' | '))
     } catch (err) {
       console.error(err)
       setError(err.message || 'Something went wrong')
