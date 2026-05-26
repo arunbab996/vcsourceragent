@@ -242,12 +242,15 @@ Respond with JSON only:
 }
 
 // ─── Full Agent Pipeline ────────────────────────────────────────────────────────
-export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady) {
+// postFilter: optional async fn(launch) → partial launch object to merge.
+// Called after filter passes but before research — used by PH source to
+// scrape real maker names from the product page.
+export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady, postFilter = null) {
   const client = createClient(apiKey)
   const deals = []
 
   for (let i = 0; i < launches.length; i++) {
-    const launch = launches[i]
+    let launch = launches[i]
 
     onProgress({
       step: 'filter',
@@ -272,6 +275,17 @@ export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady
         total: launches.length,
       })
       continue
+    }
+
+    // Post-filter enrichment — scrape PH page for real maker names
+    if (postFilter) {
+      try {
+        onProgress({ step: 'filter', message: `Fetching founder info for ${launch.name}…`, current: i + 1, total: launches.length })
+        const patch = await postFilter(launch)
+        if (patch) launch = { ...launch, ...patch }
+      } catch (err) {
+        console.warn(`postFilter failed for ${launch.name}:`, err.message)
+      }
     }
 
     onProgress({

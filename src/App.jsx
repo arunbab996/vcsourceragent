@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { fetchRecentLaunches } from './lib/productHunt'
+import { fetchRecentLaunches, scrapeMakerNames } from './lib/productHunt'
 import { fetchRecentGithubRepos } from './lib/github'
 import { fetchRecentYCCompanies } from './lib/yc'
 import { fetchShowHNPosts } from './lib/showhn'
@@ -105,7 +105,25 @@ export default function App() {
           setAgentState({ status: 'discover', message: 'Fetching Product Hunt launches…', dealsFound: 0, dealsProcessed: 0 })
           const items = await fetchRecentLaunches(PH_KEY, 48, 30)
           setAgentState(s => ({ ...s, message: `${items.length} PH launches — filtering…` }))
-          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('producthunt'))
+
+          // After a post passes the filter, scrape its PH page to get real
+          // maker names (the API token redacts them as '[REDACTED]').
+          const phPostFilter = async (launch) => {
+            if (launch.makers.length > 0) return null  // already have names
+            const scraped = await scrapeMakerNames(launch.url)
+            if (!scraped.length) return null
+            return {
+              makers: scraped.map(m => ({
+                id: m.username || m.name,
+                name: m.name,
+                username: m.username,
+                headline: m.headline,
+                twitter: '', website: '', avatar: null,
+              }))
+            }
+          }
+
+          await runAgentPipeline(OPENAI_KEY, items, onProgress, onDealReady('producthunt'), phPostFilter)
         })
       }
 
