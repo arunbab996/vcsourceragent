@@ -61,18 +61,19 @@ export default function App() {
   const [savedCount, setSavedCount] = useState(0)
   const [viewMode, setViewMode]     = useState('card') // 'card' | 'table'
 
-  // Hero crossfade: visible until first deal arrives, then fades out
+  // Hero crossfade: full-screen overlay on initial load, fades out when pipeline produces deals or finishes
   const [heroVisible, setHeroVisible] = useState(true)
   const [heroFading,  setHeroFading]  = useState(false)
   const heroTimerRef = useRef(null)
 
   useEffect(() => {
-    if (deals.length > 0 && heroVisible && !heroFading) {
+    const done = agentState.status === 'done' || agentState.status === 'error'
+    if ((deals.length > 0 || done) && heroVisible && !heroFading) {
       setHeroFading(true)
-      heroTimerRef.current = setTimeout(() => setHeroVisible(false), 520)
+      heroTimerRef.current = setTimeout(() => setHeroVisible(false), 600)
     }
     return () => clearTimeout(heroTimerRef.current)
-  }, [deals.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [deals.length, agentState.status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSource = id =>
     setSelectedSources(p => p.includes(id) ? p.filter(s => s !== id) : [...p, id])
@@ -83,7 +84,6 @@ export default function App() {
     if (!selectedSources.length) { setError('Select at least one source.'); return }
 
     setIsRunning(true); setDeals([]); setError(null); setProgress(null); setSavedCount(0)
-    setHeroVisible(true); setHeroFading(false); clearTimeout(heroTimerRef.current)
     let total = 0
 
     const onProgress = ({ step, message, current, total: t }) => {
@@ -189,143 +189,145 @@ export default function App() {
   const filtered = applyFilters(deals, filters)
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] flex flex-col">
+    <div className="min-h-screen bg-[#0F0F0F] relative">
 
-      {/* Header */}
-      <header className="h-11 border-b border-white/[0.06] bg-[#0F0F0F] sticky top-0 z-40 flex-shrink-0">
-        <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between gap-4">
-
-          {/* Wordmark */}
-          <div className="flex items-center gap-2.5">
-            <DiscoveryScoutLogo size={22} />
-            <div className="flex items-baseline gap-1">
-              <span className="text-[13px] font-semibold text-white tracking-tight">discovery</span>
-              <span className="text-[13px] text-[#555]">/</span>
-              <span className="text-[13px] font-medium text-[#777]">scout</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {isSupabaseEnabled() && savedCount > 0 && (
-              <span className="text-[11px] text-emerald-700">{savedCount} saved</span>
-            )}
-            <button
-              onClick={handleRun}
-              disabled={isRunning || !OPENAI_KEY}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-all ${
-                isRunning
-                  ? 'bg-[#1A1A1A] text-[#555] cursor-not-allowed border border-white/[0.04]'
-                  : 'bg-[#1060E8] hover:bg-[#1555D4] text-white'
-              }`}
-            >
-              {isRunning
-                ? <><span className="w-3 h-3 border border-[#444] border-t-[#777] rounded-full animate-spin" /> Running</>
-                : 'Run pipeline'
-              }
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex flex-1 max-w-screen-2xl mx-auto w-full">
-
-        {/* Sidebar */}
-        <aside className="w-52 flex-shrink-0 border-r border-white/[0.05] px-3 py-4 sticky top-11 h-[calc(100vh-2.75rem)] overflow-y-auto scrollbar-thin">
-          <Sidebar
-            sources={SOURCES}
-            selectedSources={selectedSources}
-            onToggleSource={toggleSource}
-            filters={filters}
-            onFiltersChange={setFilters}
-            deals={deals}
+      {/* ── Full-screen hero overlay — sits above header + sidebar on first load ── */}
+      {heroVisible && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          background: '#0F0F0F',
+          opacity: heroFading ? 0 : 1,
+          transition: 'opacity .6s ease',
+          pointerEvents: heroFading ? 'none' : 'auto',
+        }}>
+          <PipelineHero
             isRunning={isRunning}
+            onRun={handleRun}
+            disabled={!OPENAI_KEY}
+            agentState={agentState}
           />
-        </aside>
+        </div>
+      )}
 
-        {/* Main */}
-        <main className="flex-1 min-w-0 px-6 py-5">
-          <AgentStatusBar agentState={agentState} progress={progress} />
+      {/* ── Normal app layout — always rendered, becomes visible as hero fades ── */}
+      <div className="flex flex-col min-h-screen">
 
-          {error && (
-            <div className="border border-red-900/30 bg-red-950/10 rounded px-3 py-2 text-[12px] text-[#B06060] mb-4">
-              {error}
-            </div>
-          )}
+        {/* Header */}
+        <header className="h-11 border-b border-white/[0.06] bg-[#0F0F0F] sticky top-0 z-40 flex-shrink-0">
+          <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between gap-4">
 
-          {/* Pipeline Hero — shown while no deals have arrived yet */}
-          {heroVisible && (
-            <div
-              style={{
-                transition: 'opacity .52s ease',
-                opacity: heroFading ? 0 : 1,
-                pointerEvents: heroFading ? 'none' : 'auto',
-              }}
-            >
-              <PipelineHero
-                isRunning={isRunning}
-                onRun={handleRun}
-                disabled={!OPENAI_KEY}
-                agentState={agentState}
-              />
-            </div>
-          )}
-
-          {/* Deal list — fades in once deals start arriving */}
-          {deals.length > 0 && (
-            <div className="fade-in-up">
-              <StatsBar deals={deals} isRunning={isRunning} />
-
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] text-[#666]">
-                  {filtered.length} of {deals.length} deals
-                  {isRunning && <span className="text-blue-700 ml-2">· sourcing</span>}
-                </span>
-
-                {/* View toggle */}
-                <div className="flex items-center gap-0.5 bg-[#141414] border border-white/[0.06] rounded p-0.5">
-                  <button
-                    onClick={() => setViewMode('card')}
-                    title="Card view"
-                    className={`p-1 rounded transition-colors ${viewMode === 'card' ? 'bg-[#222] text-[#C8C8C8]' : 'text-[#555] hover:text-[#888]'}`}
-                  >
-                    {/* Card/list icon */}
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                      <rect x="1" y="2" width="14" height="3.5" rx="1" fill="currentColor" opacity=".9"/>
-                      <rect x="1" y="7" width="14" height="3.5" rx="1" fill="currentColor" opacity=".6"/>
-                      <rect x="1" y="12" width="14" height="2.5" rx="1" fill="currentColor" opacity=".35"/>
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    title="Table view"
-                    className={`p-1 rounded transition-colors ${viewMode === 'table' ? 'bg-[#222] text-[#C8C8C8]' : 'text-[#555] hover:text-[#888]'}`}
-                  >
-                    {/* Table/grid icon */}
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                      <rect x="1" y="1" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".9"/>
-                      <rect x="8.5" y="1" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".9"/>
-                      <rect x="1" y="8.5" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".6"/>
-                      <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".6"/>
-                    </svg>
-                  </button>
-                </div>
+            {/* Wordmark */}
+            <div className="flex items-center gap-2.5">
+              <DiscoveryScoutLogo size={22} />
+              <div className="flex items-baseline gap-1">
+                <span className="text-[13px] font-semibold text-white tracking-tight">discovery</span>
+                <span className="text-[13px] text-[#555]">/</span>
+                <span className="text-[13px] font-medium text-[#777]">scout</span>
               </div>
-
-              {filtered.length === 0
-                ? <p className="text-[12px] text-[#555] text-center py-16">No deals match the current filters.</p>
-                : viewMode === 'table'
-                  ? <TableView deals={filtered} />
-                  : (
-                    <div className="border border-white/[0.05] rounded-md overflow-hidden">
-                      {filtered.map(deal => (
-                        <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
-                      ))}
-                    </div>
-                  )
-              }
             </div>
-          )}
-        </main>
+
+            <div className="flex items-center gap-3">
+              {isSupabaseEnabled() && savedCount > 0 && (
+                <span className="text-[11px] text-emerald-700">{savedCount} saved</span>
+              )}
+              <button
+                onClick={handleRun}
+                disabled={isRunning || !OPENAI_KEY}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-all ${
+                  isRunning
+                    ? 'bg-[#1A1A1A] text-[#555] cursor-not-allowed border border-white/[0.04]'
+                    : 'bg-[#1060E8] hover:bg-[#1555D4] text-white'
+                }`}
+              >
+                {isRunning
+                  ? <><span className="w-3 h-3 border border-[#444] border-t-[#777] rounded-full animate-spin" /> Running</>
+                  : 'Run pipeline'
+                }
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex flex-1 max-w-screen-2xl mx-auto w-full">
+
+          {/* Sidebar */}
+          <aside className="w-52 flex-shrink-0 border-r border-white/[0.05] px-3 py-4 sticky top-11 h-[calc(100vh-2.75rem)] overflow-y-auto scrollbar-thin">
+            <Sidebar
+              sources={SOURCES}
+              selectedSources={selectedSources}
+              onToggleSource={toggleSource}
+              filters={filters}
+              onFiltersChange={setFilters}
+              deals={deals}
+              isRunning={isRunning}
+            />
+          </aside>
+
+          {/* Main */}
+          <main className="flex-1 min-w-0 px-6 py-5">
+            <AgentStatusBar agentState={agentState} progress={progress} />
+
+            {error && (
+              <div className="border border-red-900/30 bg-red-950/10 rounded px-3 py-2 text-[12px] text-[#B06060] mb-4">
+                {error}
+              </div>
+            )}
+
+            {/* Deal list — fades in once deals start arriving */}
+            {deals.length > 0 && (
+              <div className="fade-in-up">
+                <StatsBar deals={deals} isRunning={isRunning} />
+
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-[#666]">
+                    {filtered.length} of {deals.length} deals
+                    {isRunning && <span className="text-blue-700 ml-2">· sourcing</span>}
+                  </span>
+
+                  {/* View toggle */}
+                  <div className="flex items-center gap-0.5 bg-[#141414] border border-white/[0.06] rounded p-0.5">
+                    <button
+                      onClick={() => setViewMode('card')}
+                      title="Card view"
+                      className={`p-1 rounded transition-colors ${viewMode === 'card' ? 'bg-[#222] text-[#C8C8C8]' : 'text-[#555] hover:text-[#888]'}`}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                        <rect x="1" y="2" width="14" height="3.5" rx="1" fill="currentColor" opacity=".9"/>
+                        <rect x="1" y="7" width="14" height="3.5" rx="1" fill="currentColor" opacity=".6"/>
+                        <rect x="1" y="12" width="14" height="2.5" rx="1" fill="currentColor" opacity=".35"/>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      title="Table view"
+                      className={`p-1 rounded transition-colors ${viewMode === 'table' ? 'bg-[#222] text-[#C8C8C8]' : 'text-[#555] hover:text-[#888]'}`}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                        <rect x="1" y="1" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".9"/>
+                        <rect x="8.5" y="1" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".9"/>
+                        <rect x="1" y="8.5" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".6"/>
+                        <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1" fill="currentColor" opacity=".6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {filtered.length === 0
+                  ? <p className="text-[12px] text-[#555] text-center py-16">No deals match the current filters.</p>
+                  : viewMode === 'table'
+                    ? <TableView deals={filtered} />
+                    : (
+                      <div className="border border-white/[0.05] rounded-md overflow-hidden">
+                        {filtered.map(deal => (
+                          <DealCard key={`${deal.source}_${deal.id}`} deal={deal} />
+                        ))}
+                      </div>
+                    )
+                }
+              </div>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   )
