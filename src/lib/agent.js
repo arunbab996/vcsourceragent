@@ -65,8 +65,9 @@ Respond with JSON only:
   "reason": "one sentence explanation"
 }`
 
+  // gpt-4o-mini is ~20x cheaper and fast enough for binary qualify/reject
   const res = await client.chat.completions.create({
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     temperature: 0,
     response_format: { type: 'json_object' },
     messages: [{ role: 'user', content: prompt }],
