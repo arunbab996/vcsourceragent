@@ -264,6 +264,14 @@ export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady
       filterResult = await filterLaunch(client, launch)
     } catch (err) {
       console.error(`Filter failed for ${launch.name}:`, err)
+      // Billing / auth errors are fatal — no point continuing the loop
+      const msg = err?.message || ''
+      if (err?.status === 429 || err?.status === 402 || /insufficient_quota|billing|credit|quota/i.test(msg)) {
+        throw new Error('OpenAI credits exhausted. Top up at platform.openai.com/settings/billing and try again.')
+      }
+      if (err?.status === 401) {
+        throw new Error('OpenAI API key is invalid. Check VITE_OPENAI_API_KEY in your Vercel environment variables.')
+      }
       continue
     }
 
