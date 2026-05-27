@@ -14,7 +14,7 @@ export function isSupabaseEnabled() {
 export async function saveDeal(deal, source = 'producthunt') {
   if (!supabase) return { error: 'Supabase not configured' }
 
-  const { enrichment, scoring, launch } = deal
+  const { enrichment, launch } = deal
 
   const row = {
     id: `${source}_${deal.id}`,
@@ -28,10 +28,6 @@ export async function saveDeal(deal, source = 'producthunt') {
     notable_signals: enrichment.notableSignals || [],
     traction_signals: enrichment.tractionSignals,
     enrichment_notes: enrichment.enrichmentNotes,
-    score: scoring.score,
-    score_reason: scoring.scoreReason,
-    pass_to_partners: scoring.passToPartners,
-    red_flags: scoring.redFlags || [],
     votes: launch.votes || 0,
     ph_url: launch.url || null,
     website: launch.website || null,

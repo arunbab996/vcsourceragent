@@ -28,14 +28,13 @@ const SOURCES = [
   { id: 'edgar',       label: 'SEC EDGAR',     envKey: null,                requires: false, comingSoon: true },
 ]
 
-const DEFAULT_FILTERS = { minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'votes' }
+const DEFAULT_FILTERS = { vertical: '', stage: '', signal: '', source: '', sort: 'votes' }
 
 const norm = s => (s || '').toLowerCase().trim()
 
 function applyFilters(deals, filters) {
   return deals
     .filter(d => {
-      if (d.scoring.score < filters.minScore) return false
       if (filters.source   && d.source !== filters.source) return false
       if (filters.vertical && norm(d.enrichment?.vertical) !== norm(filters.vertical)) return false
       if (filters.stage    && norm(d.enrichment?.stage)    !== norm(filters.stage))    return false

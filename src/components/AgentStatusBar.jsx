@@ -1,5 +1,5 @@
-const STEPS = ['discover', 'filter', 'research', 'enrich', 'score']
-const STEP_LABEL = { discover: 'Discover', filter: 'Filter', research: 'Research', enrich: 'Enrich', score: 'Score' }
+const STEPS = ['discover', 'filter', 'research', 'enrich']
+const STEP_LABEL = { discover: 'Discover', filter: 'Filter', research: 'Research', enrich: 'Enrich' }
 
 export default function AgentStatusBar({ agentState, progress }) {
   const { status, message, dealsFound, dealsProcessed } = agentState

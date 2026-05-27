@@ -209,39 +209,6 @@ Respond with JSON only:
   return result
 }
 
-// ─── Step 4: Score ─────────────────────────────────────────────────────────────
-export async function scoreDeal(client, launch, enrichment) {
-  const prompt = `You are a senior VC partner scoring early-stage deals for investment relevance.
-
-Score from 1-10 based on:
-- Problem novelty and market size potential (3 points)
-- Founder signal quality (3 points)
-- Early traction or momentum (2 points)
-- Timing and category attractiveness (2 points)
-
-Calibration: 8-10 = genuinely exciting, pass to partners immediately; 5-7 = monitor, follow up in 3 months; 1-4 = not VC-relevant.
-
-Deal:
-${JSON.stringify({ ...enrichment, votes: launch.votes, topics: launch.topics }, null, 2)}
-
-Respond with JSON only:
-{
-  "score": number (1-10),
-  "scoreReason": "one sentence explaining the score",
-  "passToPartners": true | false,
-  "redFlags": ["any concerns, or empty array"]
-}`
-
-  const res = await client.chat.completions.create({
-    model: 'gpt-4o',
-    temperature: 0,
-    response_format: { type: 'json_object' },
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  return JSON.parse(res.choices[0].message.content)
-}
-
 // ─── Full Agent Pipeline ────────────────────────────────────────────────────────
 // postFilter: optional async fn(launch) → partial launch object to merge.
 // Called after filter passes but before research — used by PH source to
@@ -350,27 +317,11 @@ export async function runAgentPipeline(apiKey, launches, onProgress, onDealReady
       }
     }
 
-    onProgress({
-      step: 'score',
-      message: `Scoring deal: ${launch.name}...`,
-      current: i + 1,
-      total: launches.length,
-    })
-
-    let scoring
-    try {
-      scoring = await scoreDeal(client, launch, enrichment)
-    } catch (err) {
-      console.error(`Score failed for ${launch.name}:`, err)
-      scoring = { score: 5, scoreReason: 'Scoring unavailable', passToPartners: false, redFlags: [] }
-    }
-
     const deal = {
       id: launch.id,
       launch,
       research,
       enrichment,
-      scoring,
       lowInfo: research.founders?.every(f => f.confidence === 'low') || false,
     }
 

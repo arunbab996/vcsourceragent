@@ -46,7 +46,7 @@ function LinkIcon() {
 
 export default function DealCard({ deal }) {
   const [open, setOpen] = useState(false)
-  const { launch, enrichment, scoring, source, research } = deal
+  const { launch, enrichment, source, research } = deal
   const Logo     = SOURCE_LOGO[source] || ProductHuntLogo
   const founders = (enrichment.founderNames || [])
     .filter(n => n && typeof n === 'string' && n !== 'Unknown' && !/^\[?redacted\]?$/i.test(n.trim()))
@@ -141,18 +141,6 @@ export default function DealCard({ deal }) {
                 <p className="text-[12px] text-[#A0A0A0] leading-relaxed">{enrichment.enrichmentNotes}</p>
               </Detail>
             )}
-            <Detail title="Score reasoning">
-              <p className="text-[12px] text-[#A0A0A0] leading-relaxed">{scoring.scoreReason}</p>
-              {scoring.redFlags?.length > 0 && (
-                <ul className="mt-2 space-y-1">
-                  {scoring.redFlags.map((f, i) => (
-                    <li key={i} className="text-[11px] text-[#8A4040] flex items-start gap-1.5">
-                      <span className="flex-shrink-0">↳</span>{f}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Detail>
           </div>
 
           {enrichment.tractionSignals && (

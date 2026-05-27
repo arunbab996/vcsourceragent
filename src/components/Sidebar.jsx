@@ -12,7 +12,7 @@ const LOGO = {
 export default function Sidebar({ sources, selectedSources, onToggleSource, filters, onFiltersChange, deals, isRunning }) {
   const verticals = [...new Set(deals.map(d => d.enrichment?.vertical).filter(Boolean))].sort()
   const anyFilter = filters.vertical || filters.stage || filters.signal || filters.source
-  const clear = () => onFiltersChange({ minScore: 1, vertical: '', stage: '', signal: '', source: '', sort: 'votes' })
+  const clear = () => onFiltersChange({ vertical: '', stage: '', signal: '', source: '', sort: 'votes' })
 
   return (
     <div className="space-y-5">
