@@ -8,6 +8,7 @@ import { fetchRecentFormD } from './lib/edgar'
 import { runAgentPipeline } from './lib/agent'
 import { saveDeal, isSupabaseEnabled } from './lib/supabase'
 import { DiscoveryScoutLogo } from './components/Logos'
+import PasswordGate from './components/PasswordGate'
 import PipelineHero from './components/PipelineHero'
 import DealCard from './components/DealCard'
 import TableView from './components/TableView'
@@ -47,7 +48,19 @@ function applyFilters(deals, filters) {
     )
 }
 
+const ACCESS_PASSWORD = import.meta.env.VITE_ACCESS_PASSWORD
+
 export default function App() {
+  const [unlocked, setUnlocked] = useState(() => {
+    if (!ACCESS_PASSWORD) return true  // no password set → gate disabled (handy for local dev)
+    return localStorage.getItem('ds_auth') === '1'
+  })
+
+  if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />
+  return <AppContent />
+}
+
+function AppContent() {
   const [selectedSources, setSelectedSources] = useState(
     SOURCES.filter(s => s.requires).map(s => s.id)
   )
